@@ -125,16 +125,3 @@ For security teams, LLM adoption is not just about "best model overall." It is a
 
 This repo shows one lightweight way to evaluate those questions.
 
-## Resume-ready bullets
-
-- Designed and executed a pairwise LLM evaluation study using Handshake AI Versus to compare model performance on 10 cybersecurity and SOC-oriented tasks.
-- Benchmarked models on MITRE ATT&CK explanation, detection engineering, incident investigation, Python scripting, reasoning, and hallucination resistance.
-- Built a structured results dataset and visualized outcomes by model and vendor to identify task-specific strengths in AI systems for security operations.
-- Documented methodology, limitations, and findings in a GitHub-ready research-style project.
-
-## Interview talking points
-
-- I wanted a project that connected my cybersecurity background with data science and AI evaluation.
-- Instead of building a generic chatbot, I focused on **evaluating models on practical SOC tasks**.
-- The project showed that different models have different strengths: some were better at cyber reasoning, while others were stronger in coding or hallucination handling.
-- The biggest lesson was that AI should be evaluated **by task**, not only by brand or hype.
