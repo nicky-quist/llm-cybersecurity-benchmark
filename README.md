@@ -90,6 +90,20 @@ llm-cybersecurity-benchmark/
     └── winner_by_prompt.png
 ```
 
+
+## Interactive Dashboard Features
+
+The dashboard (`dashboard/index.html`) now includes:
+
+- KPI cards for prompt count, vendor wins, model coverage, and top model ties
+- Dual scoreboards (wins by vendor + top models by wins)
+- Category chips, full-text search, and sortable prompt result rows
+- Expand/collapse rationale details per prompt
+- Model spotlight cards with win/loss/win-rate stats
+- Head-to-head matchup summaries showing repeated pair outcomes
+
+Open `dashboard/index.html` in a browser to explore the full interactive view.
+
 ## Prompt Set
 
 The full prompt set is stored in `data/prompt_results.csv` (20 rows).
