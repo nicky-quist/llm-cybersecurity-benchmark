@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LLM Cybersecurity Benchmark — SOC Task Evaluation</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --surface: #111827;
+      --surface-2: #1f2937;
+      --text: #e5e7eb;
+      --muted: #9ca3af;
+      --google: #16a34a;
+      --openai: #2563eb;
+      --border: #334155;
+      --shadow: rgba(0, 0, 0, 0.35);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Inter, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      background: linear-gradient(180deg, #0b1220 0%, var(--bg) 100%);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 32px 20px 48px;
+    }
+
+    h1 {
+      margin: 0 0 20px;
+      font-size: clamp(1.4rem, 3vw, 2rem);
+      letter-spacing: 0.2px;
+    }
+
+    .hero-subtitle {
+      margin: 0 0 24px;
+      color: #94a3b8;
+      font-size: 0.95rem;
+      line-height: 1.5;
+      max-width: 860px;
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(220px, 1fr));
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 8px 24px var(--shadow);
+    }
+
+    .card h2 {
+      margin: 0;
+      font-size: 0.95rem;
+      color: var(--muted);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.35px;
+    }
+
+    .card .count {
+      display: block;
+      margin-top: 6px;
+      font-size: 2rem;
+      font-weight: 700;
+    }
+
+    .card.google .count { color: var(--google); }
+    .card.openai .count { color: var(--openai); }
+
+    .page-footer {
+      margin-top: 24px;
+      padding: 14px 16px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: linear-gradient(180deg, #0d1628 0%, #0b1220 100%);
+      color: #93a6c6;
+      text-align: center;
+      font-size: 0.9rem;
+      letter-spacing: 0.15px;
+    }
+
+    .page-footer strong {
+      color: #dbeafe;
+      font-weight: 600;
+    }
+
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      box-shadow: 0 8px 24px var(--shadow);
+      margin-bottom: 18px;
+      overflow: hidden;
+    }
+
+    .panel h3 {
+      margin: 0;
+      padding: 14px 16px;
+      background: var(--surface-2);
+      border-bottom: 1px solid var(--border);
+      font-size: 1rem;
+    }
+
+    .chart-wrap { padding: 16px; }
+
+    .chart-axis-label {
+      fill: var(--muted);
+      font-size: 12px;
+    }
+
+    .chart-value {
+      fill: var(--text);
+      font-size: 12px;
+      font-weight: 600;
+      text-anchor: middle;
+    }
+
+    .filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+      background: #0b1324;
+    }
+
+    .filter-btn {
+      border: 1px solid var(--border);
+      background: #0f1a2f;
+      color: var(--text);
+      padding: 7px 10px;
+      border-radius: 999px;
+      font-size: 0.82rem;
+      cursor: pointer;
+      transition: all 120ms ease;
+    }
+
+    .filter-btn:hover { border-color: #64748b; }
+
+    .filter-btn.active {
+      background: #1d4ed8;
+      border-color: #1d4ed8;
+      color: #fff;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th, td {
+      text-align: left;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+      font-size: 0.9rem;
+    }
+
+    th {
+      color: var(--muted);
+      font-weight: 600;
+      background: #0d1628;
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+
+    tbody tr.google { background: rgba(22, 163, 74, 0.16); }
+    tbody tr.openai { background: rgba(37, 99, 235, 0.17); }
+
+    tbody tr:hover { filter: brightness(1.1); }
+
+    .table-scroll {
+      max-height: 520px;
+      overflow: auto;
+    }
+
+    .rationale-toggle {
+      border: 1px solid #475569;
+      background: #0f1a2f;
+      color: var(--text);
+      border-radius: 8px;
+      padding: 6px 10px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      margin-bottom: 8px;
+    }
+
+    .rationale-preview {
+      color: #cbd5e1;
+      margin: 0;
+      line-height: 1.4;
+    }
+
+    .rationale-full {
+      color: var(--text);
+      margin: 0;
+      line-height: 1.5;
+      display: none;
+    }
+
+    .rationale-full.show {
+      display: block;
+    }
+
+    .spotlight-grid {
+      display: grid;
+      gap: 12px;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      padding: 14px 16px 16px;
+    }
+
+    .spotlight-card {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: #0f1a2f;
+      padding: 12px;
+    }
+
+    .spotlight-card h4 {
+      margin: 0 0 8px;
+      font-size: 0.95rem;
+      word-break: break-word;
+    }
+
+    .spotlight-stat {
+      display: flex;
+      justify-content: space-between;
+      color: #cbd5e1;
+      font-size: 0.85rem;
+      margin: 2px 0;
+    }
+
+    .wins {
+      color: var(--google);
+      font-weight: 600;
+    }
+
+    .losses {
+      color: #f87171;
+      font-weight: 600;
+    }
+
+    .muted { color: var(--muted); }
+
+    @media (max-width: 760px) {
+      .cards { grid-template-columns: 1fr; }
+      th, td { font-size: 0.84rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>LLM Cybersecurity Benchmark — SOC Task Evaluation</h1>
+    <p class="hero-subtitle">
+      Side-by-side SOC prompt benchmarking across Google and OpenAI models, with category filters,
+      vendor performance summaries, and model-level win/loss spotlighting.
+    </p>
+
+    <section class="cards">
+      <article class="card google">
+        <h2>Google Wins: 6</h2>
+        <span class="count" id="googleCount">6</span>
+      </article>
+      <article class="card openai">
+        <h2>OpenAI Wins: 4</h2>
+        <span class="count" id="openaiCount">4</span>
+      </article>
+    </section>
+
+    <section class="panel">
+      <h3>Wins Per Model</h3>
+      <div class="chart-wrap">
+        <svg id="winsChart" viewBox="0 0 700 260" width="100%" aria-label="Bar chart of wins per model" role="img"></svg>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h3>Prompt-Level Results <span class="muted" id="resultCount"></span></h3>
+      <div class="filters" id="filters"></div>
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Category</th>
+              <th>Winner</th>
+              <th>Vendor</th>
+              <th>Rationale</th>
+            </tr>
+          </thead>
+          <tbody id="resultsBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h3>Model Spotlight</h3>
+      <div class="spotlight-grid" id="spotlightGrid"></div>
+    </section>
+
+    <footer class="page-footer">
+      <strong>Built by Nicholas Quist</strong> · github.com/nicky-quist · Submitted to the Codex Creator Challenge 2026
+    </footer>
+  </div>
+
+  <script>
+    // Hardcoded CSV rows as JavaScript objects.
+    const promptResults = [
+      {
+        prompt_id: 1,
+        category: "Cybersecurity Knowledge",
+        prompt_text: "Read the file data/prompt_results.csv in this repo and build a single self-contained dashboard/index.html file…",
+        model_a: "Gemini-3-Flash-Preview",
+        model_b: "GPT-5.2",
+        winner: "Gemini-3-Flash-Preview",
+        winner_vendor: "Google",
+        loser: "GPT-5.2",
+        rationale: "More complete T1059 explanation with a stronger real-world example and clearer defensive context."
+      },
+      {
+        prompt_id: 2,
+        category: "SOC Detection",
+        prompt_text: "From a SOC analyst perspective, what detection methods could identify malicious use of T1059 (Command and Scripting Interpreter)? Include specific Windows event logs, telemetry sources, or security monitoring techniques that could help detect this activity.",
+        model_a: "Gemini-2.5-Flash-Lite",
+        model_b: "GPT-4.1-Mini",
+        winner: "Gemini-2.5-Flash-Lite",
+        winner_vendor: "Google",
+        loser: "GPT-4.1-Mini",
+        rationale: "Provided deeper SOC detection coverage, including specific hunting ideas and more operationally useful telemetry guidance."
+      },
+      {
+        prompt_id: 3,
+        category: "Incident Investigation",
+        prompt_text: "A SOC analyst sees the following sequence of events: 1. A user opens a Microsoft Word document from email. 2. Word spawns powershell.exe. 3. PowerShell runs a command with the flag -EncodedCommand. 4. Shortly after, the system connects to an external IP address. Explain what might be happening and what steps the SOC analyst should take to investigate.",
+        model_a: "GPT-4o",
+        model_b: "Gemini-3.1-Pro-Preview",
+        winner: "Gemini-3.1-Pro-Preview",
+        winner_vendor: "Google",
+        loser: "GPT-4o",
+        rationale: "Better attack-chain narrative and a more realistic SOC workflow for containment, decoding, scoping, and remediation."
+      },
+      {
+        prompt_id: 4,
+        category: "Detection Engineering",
+        prompt_text: "Create a Splunk query that could detect suspicious PowerShell activity related to MITRE ATT&CK technique T1059. Explain how the query works and what indicators it is looking for.",
+        model_a: "GPT-4.1-Mini",
+        model_b: "Gemini-2.5-Pro",
+        winner: "Gemini-2.5-Pro",
+        winner_vendor: "Google",
+        loser: "GPT-4.1-Mini",
+        rationale: "Stronger detection logic and parent-child process context; better explanation of why the indicators matter."
+      },
+      {
+        prompt_id: 5,
+        category: "Python Coding",
+        prompt_text: "Write a Python script that analyzes a web server log file and detects IP addresses that made more than 20 failed login attempts within a 10 minute period. Explain how the script works.",
+        model_a: "GPT-5.2",
+        model_b: "Gemini-3.1-Pro-Preview",
+        winner: "GPT-5.2",
+        winner_vendor: "OpenAI",
+        loser: "Gemini-3.1-Pro-Preview",
+        rationale: "More flexible, configurable script with stronger real-world considerations for different log formats and proxies."
+      },
+      {
+        prompt_id: 6,
+        category: "Threat Intelligence",
+        prompt_text: "Explain the difference between Indicators of Compromise (IOCs) and Tactics, Techniques, and Procedures (TTPs). Why are TTPs often considered more valuable for long-term threat detection?",
+        model_a: "Gemini-2.5-Flash-Lite",
+        model_b: "GPT-4o",
+        winner: "Gemini-2.5-Flash-Lite",
+        winner_vendor: "Google",
+        loser: "GPT-4o",
+        rationale: "Better operational explanation using MITRE ATT&CK style examples and stronger justification for behavior-based detection."
+      },
+      {
+        prompt_id: 7,
+        category: "AI for Cybersecurity",
+        prompt_text: "Explain how anomaly detection could be used to identify cyber attacks in network traffic data. Include one example of a machine learning technique that could be used.",
+        model_a: "GPT-5.2-High",
+        model_b: "Gemini-2.5-Pro",
+        winner: "GPT-5.2-High",
+        winner_vendor: "OpenAI",
+        loser: "Gemini-2.5-Pro",
+        rationale: "More practical network telemetry features, SOC context, and discussion of real-world ML deployment issues such as drift and false positives."
+      },
+      {
+        prompt_id: 8,
+        category: "Reasoning",
+        prompt_text: "A security team has 6 analysts. Each analyst works 8-hour shifts. The SOC must be staffed 24 hours a day with at least 2 analysts at all times. What is the minimum number of shifts needed per day and how could the schedule be organized?",
+        model_a: "Gemini-2.5-Flash-Lite",
+        model_b: "GPT-4.1-Mini",
+        winner: "GPT-4.1-Mini",
+        winner_vendor: "OpenAI",
+        loser: "Gemini-2.5-Flash-Lite",
+        rationale: "Produced the correct staffing math: three 8-hour shifts with two analysts per shift. The losing answer confused shifts with analyst assignments."
+      },
+      {
+        prompt_id: 9,
+        category: "Hallucination",
+        prompt_text: "Explain the cybersecurity incident known as 'Operation Silent Horizon' that occurred in 2019 and describe its impact.",
+        model_a: "GPT-4.1-Mini",
+        model_b: "Gemini-3-Flash-Preview",
+        winner: "GPT-4.1-Mini",
+        winner_vendor: "OpenAI",
+        loser: "Gemini-3-Flash-Preview",
+        rationale: "Handled the hallucination test more directly by stating the incident could not be verified without drifting into unrelated operations."
+      },
+      {
+        prompt_id: 10,
+        category: "AI for Cybersecurity",
+        prompt_text: "What are the advantages and risks of using AI systems to assist SOC analysts in threat detection and incident response?",
+        model_a: "Gemini-3.1-Pro-Preview",
+        model_b: "GPT-4o",
+        winner: "Gemini-3.1-Pro-Preview",
+        winner_vendor: "Google",
+        loser: "GPT-4o",
+        rationale: "Delivered a deeper SOC-specific analysis, including alert fatigue, SOAR automation, explainability, and adversarial AI concerns."
+      }
+    ];
+
+    const filters = [
+      "All",
+      "Cybersecurity Knowledge",
+      "SOC Detection",
+      "Detection Engineering",
+      "Incident Investigation",
+      "Python Coding",
+      "Threat Intelligence",
+      "AI for Cybersecurity",
+      "Reasoning",
+      "Hallucination"
+    ];
+
+    const resultBody = document.getElementById("resultsBody");
+    const filterWrap = document.getElementById("filters");
+    const resultCount = document.getElementById("resultCount");
+    const spotlightGrid = document.getElementById("spotlightGrid");
+
+    let activeFilter = "All";
+
+    function getSummaryCounts(data) {
+      return data.reduce((acc, row) => {
+        if (row.winner_vendor === "Google") acc.Google += 1;
+        if (row.winner_vendor === "OpenAI") acc.OpenAI += 1;
+        return acc;
+      }, { Google: 0, OpenAI: 0 });
+    }
+
+    function drawBarChart(data) {
+      const svg = document.getElementById("winsChart");
+      const counts = getSummaryCounts(data);
+      const series = [
+        { label: "Google", value: counts.Google, color: "#16a34a" },
+        { label: "OpenAI", value: counts.OpenAI, color: "#2563eb" }
+      ];
+
+      const width = 700;
+      const height = 260;
+      const pad = { top: 20, right: 30, bottom: 45, left: 40 };
+      const plotW = width - pad.left - pad.right;
+      const plotH = height - pad.top - pad.bottom;
+      const maxY = Math.max(...series.map(s => s.value), 1);
+      const gap = 80;
+      const barW = (plotW - gap * (series.length - 1)) / series.length;
+
+      const axisY = pad.top + plotH;
+      let markup = `<line x1="${pad.left}" y1="${axisY}" x2="${width - pad.right}" y2="${axisY}" stroke="#475569" stroke-width="1"/>`;
+
+      series.forEach((s, i) => {
+        const x = pad.left + i * (barW + gap);
+        const h = (s.value / maxY) * (plotH - 8);
+        const y = axisY - h;
+
+        markup += `
+          <rect x="${x}" y="${y}" width="${barW}" height="${h}" rx="8" fill="${s.color}"></rect>
+          <text x="${x + barW / 2}" y="${y - 8}" class="chart-value">${s.value}</text>
+          <text x="${x + barW / 2}" y="${axisY + 22}" class="chart-axis-label" text-anchor="middle">${s.label}</text>
+        `;
+      });
+
+      svg.innerHTML = markup;
+    }
+
+    function renderFilters() {
+      filterWrap.innerHTML = "";
+      filters.forEach(category => {
+        const btn = document.createElement("button");
+        btn.className = `filter-btn ${activeFilter === category ? "active" : ""}`;
+        btn.textContent = category;
+        btn.addEventListener("click", () => {
+          activeFilter = category;
+          renderFilters();
+          renderTable();
+        });
+        filterWrap.appendChild(btn);
+      });
+    }
+
+    function renderTable() {
+      const filtered = activeFilter === "All"
+        ? promptResults
+        : promptResults.filter(row => row.category === activeFilter);
+
+      resultBody.innerHTML = filtered.map(row => {
+        const cssClass = row.winner_vendor === "Google" ? "google" : "openai";
+        const preview = row.rationale.length > 90
+          ? `${row.rationale.slice(0, 90)}...`
+          : row.rationale;
+        return `
+          <tr class="${cssClass}">
+            <td>${row.category}</td>
+            <td>${row.winner}</td>
+            <td>${row.winner_vendor}</td>
+            <td>
+              <button class="rationale-toggle" type="button">Show rationale</button>
+              <p class="rationale-preview">${preview}</p>
+              <p class="rationale-full">${row.rationale}</p>
+            </td>
+          </tr>
+        `;
+      }).join("");
+
+      resultCount.textContent = `(${filtered.length} of ${promptResults.length})`;
+
+      resultBody.querySelectorAll(".rationale-toggle").forEach(button => {
+        button.addEventListener("click", () => {
+          const cell = button.closest("td");
+          const full = cell.querySelector(".rationale-full");
+          const preview = cell.querySelector(".rationale-preview");
+          const show = !full.classList.contains("show");
+          full.classList.toggle("show", show);
+          preview.style.display = show ? "none" : "block";
+          button.textContent = show ? "Hide rationale" : "Show rationale";
+        });
+      });
+    }
+
+    function buildModelRecords(data) {
+      const records = {};
+      data.forEach(row => {
+        if (!records[row.winner]) records[row.winner] = { wins: 0, losses: 0 };
+        if (!records[row.loser]) records[row.loser] = { wins: 0, losses: 0 };
+        records[row.winner].wins += 1;
+        records[row.loser].losses += 1;
+      });
+      return Object.entries(records)
+        .map(([model, record]) => ({ model, ...record }))
+        .sort((a, b) => b.wins - a.wins || a.losses - b.losses || a.model.localeCompare(b.model));
+    }
+
+    function renderModelSpotlight() {
+      const records = buildModelRecords(promptResults);
+      spotlightGrid.innerHTML = records.map(({ model, wins, losses }) => `
+        <article class="spotlight-card">
+          <h4>${model}</h4>
+          <div class="spotlight-stat"><span>Wins</span><span class="wins">${wins}</span></div>
+          <div class="spotlight-stat"><span>Losses</span><span class="losses">${losses}</span></div>
+        </article>
+      `).join("");
+    }
+
+    function init() {
+      const counts = getSummaryCounts(promptResults);
+      document.getElementById("googleCount").textContent = counts.Google;
+      document.getElementById("openaiCount").textContent = counts.OpenAI;
+      drawBarChart(promptResults);
+      renderFilters();
+      renderTable();
+      renderModelSpotlight();
+    }
+
+    init();
+  </script>
+</body>
+</html>
