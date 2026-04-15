@@ -273,11 +273,11 @@
 
     <section class="cards">
       <article class="card google">
-        <h2>Google Wins: 6</h2>
+        <h2>Google Wins</h2>
         <span class="count" id="googleCount">6</span>
       </article>
       <article class="card openai">
-        <h2>OpenAI Wins: 4</h2>
+        <h2>OpenAI Wins</h2>
         <span class="count" id="openaiCount">4</span>
       </article>
     </section>
@@ -320,130 +320,29 @@
   <script>
     // Hardcoded CSV rows as JavaScript objects.
     const promptResults = [
-      {
-        prompt_id: 1,
-        category: "Cybersecurity Knowledge",
-        prompt_text: "Read the file data/prompt_results.csv in this repo and build a single self-contained dashboard/index.html file…",
-        model_a: "Gemini-3-Flash-Preview",
-        model_b: "GPT-5.2",
-        winner: "Gemini-3-Flash-Preview",
-        winner_vendor: "Google",
-        loser: "GPT-5.2",
-        rationale: "More complete T1059 explanation with a stronger real-world example and clearer defensive context."
-      },
-      {
-        prompt_id: 2,
-        category: "SOC Detection",
-        prompt_text: "From a SOC analyst perspective, what detection methods could identify malicious use of T1059 (Command and Scripting Interpreter)? Include specific Windows event logs, telemetry sources, or security monitoring techniques that could help detect this activity.",
-        model_a: "Gemini-2.5-Flash-Lite",
-        model_b: "GPT-4.1-Mini",
-        winner: "Gemini-2.5-Flash-Lite",
-        winner_vendor: "Google",
-        loser: "GPT-4.1-Mini",
-        rationale: "Provided deeper SOC detection coverage, including specific hunting ideas and more operationally useful telemetry guidance."
-      },
-      {
-        prompt_id: 3,
-        category: "Incident Investigation",
-        prompt_text: "A SOC analyst sees the following sequence of events: 1. A user opens a Microsoft Word document from email. 2. Word spawns powershell.exe. 3. PowerShell runs a command with the flag -EncodedCommand. 4. Shortly after, the system connects to an external IP address. Explain what might be happening and what steps the SOC analyst should take to investigate.",
-        model_a: "GPT-4o",
-        model_b: "Gemini-3.1-Pro-Preview",
-        winner: "Gemini-3.1-Pro-Preview",
-        winner_vendor: "Google",
-        loser: "GPT-4o",
-        rationale: "Better attack-chain narrative and a more realistic SOC workflow for containment, decoding, scoping, and remediation."
-      },
-      {
-        prompt_id: 4,
-        category: "Detection Engineering",
-        prompt_text: "Create a Splunk query that could detect suspicious PowerShell activity related to MITRE ATT&CK technique T1059. Explain how the query works and what indicators it is looking for.",
-        model_a: "GPT-4.1-Mini",
-        model_b: "Gemini-2.5-Pro",
-        winner: "Gemini-2.5-Pro",
-        winner_vendor: "Google",
-        loser: "GPT-4.1-Mini",
-        rationale: "Stronger detection logic and parent-child process context; better explanation of why the indicators matter."
-      },
-      {
-        prompt_id: 5,
-        category: "Python Coding",
-        prompt_text: "Write a Python script that analyzes a web server log file and detects IP addresses that made more than 20 failed login attempts within a 10 minute period. Explain how the script works.",
-        model_a: "GPT-5.2",
-        model_b: "Gemini-3.1-Pro-Preview",
-        winner: "GPT-5.2",
-        winner_vendor: "OpenAI",
-        loser: "Gemini-3.1-Pro-Preview",
-        rationale: "More flexible, configurable script with stronger real-world considerations for different log formats and proxies."
-      },
-      {
-        prompt_id: 6,
-        category: "Threat Intelligence",
-        prompt_text: "Explain the difference between Indicators of Compromise (IOCs) and Tactics, Techniques, and Procedures (TTPs). Why are TTPs often considered more valuable for long-term threat detection?",
-        model_a: "Gemini-2.5-Flash-Lite",
-        model_b: "GPT-4o",
-        winner: "Gemini-2.5-Flash-Lite",
-        winner_vendor: "Google",
-        loser: "GPT-4o",
-        rationale: "Better operational explanation using MITRE ATT&CK style examples and stronger justification for behavior-based detection."
-      },
-      {
-        prompt_id: 7,
-        category: "AI for Cybersecurity",
-        prompt_text: "Explain how anomaly detection could be used to identify cyber attacks in network traffic data. Include one example of a machine learning technique that could be used.",
-        model_a: "GPT-5.2-High",
-        model_b: "Gemini-2.5-Pro",
-        winner: "GPT-5.2-High",
-        winner_vendor: "OpenAI",
-        loser: "Gemini-2.5-Pro",
-        rationale: "More practical network telemetry features, SOC context, and discussion of real-world ML deployment issues such as drift and false positives."
-      },
-      {
-        prompt_id: 8,
-        category: "Reasoning",
-        prompt_text: "A security team has 6 analysts. Each analyst works 8-hour shifts. The SOC must be staffed 24 hours a day with at least 2 analysts at all times. What is the minimum number of shifts needed per day and how could the schedule be organized?",
-        model_a: "Gemini-2.5-Flash-Lite",
-        model_b: "GPT-4.1-Mini",
-        winner: "GPT-4.1-Mini",
-        winner_vendor: "OpenAI",
-        loser: "Gemini-2.5-Flash-Lite",
-        rationale: "Produced the correct staffing math: three 8-hour shifts with two analysts per shift. The losing answer confused shifts with analyst assignments."
-      },
-      {
-        prompt_id: 9,
-        category: "Hallucination",
-        prompt_text: "Explain the cybersecurity incident known as 'Operation Silent Horizon' that occurred in 2019 and describe its impact.",
-        model_a: "GPT-4.1-Mini",
-        model_b: "Gemini-3-Flash-Preview",
-        winner: "GPT-4.1-Mini",
-        winner_vendor: "OpenAI",
-        loser: "Gemini-3-Flash-Preview",
-        rationale: "Handled the hallucination test more directly by stating the incident could not be verified without drifting into unrelated operations."
-      },
-      {
-        prompt_id: 10,
-        category: "AI for Cybersecurity",
-        prompt_text: "What are the advantages and risks of using AI systems to assist SOC analysts in threat detection and incident response?",
-        model_a: "Gemini-3.1-Pro-Preview",
-        model_b: "GPT-4o",
-        winner: "Gemini-3.1-Pro-Preview",
-        winner_vendor: "Google",
-        loser: "GPT-4o",
-        rationale: "Delivered a deeper SOC-specific analysis, including alert fatigue, SOAR automation, explainability, and adversarial AI concerns."
-      }
+      {"prompt_id": 1, "category": "Cybersecurity Knowledge", "prompt_text": "Explain the MITRE ATT&CK technique T1059 (Command and Scripting Interpreter). Include how attackers use it and one real-world example of an attack that used it.", "model_a": "Gemini-3-Flash-Preview", "model_b": "GPT-5.2", "winner": "Gemini-3-Flash-Preview", "winner_vendor": "Google", "loser": "GPT-5.2", "rationale": "More complete T1059 explanation with a stronger real-world example and clearer defensive context."},
+      {"prompt_id": 2, "category": "Soc Detection", "prompt_text": "From a SOC analyst perspective, what detection methods could identify malicious use of T1059 (Command and Scripting Interpreter)? Include specific Windows event logs, telemetry sources, or security monitoring techniques that could help detect this activity.", "model_a": "Gemini-2.5-Flash-Lite", "model_b": "GPT-4.1-Mini", "winner": "Gemini-2.5-Flash-Lite", "winner_vendor": "Google", "loser": "GPT-4.1-Mini", "rationale": "Provided deeper SOC detection coverage, including specific hunting ideas and more operationally useful telemetry guidance."},
+      {"prompt_id": 3, "category": "Incident Investigation", "prompt_text": "A SOC analyst sees the following sequence of events: 1. A user opens a Microsoft Word document from email. 2. Word spawns powershell.exe. 3. PowerShell runs a command with the flag -EncodedCommand. 4. Shortly after, the system connects to an external IP address. Explain what might be happening and what steps the SOC analyst should take to investigate.", "model_a": "GPT-4o", "model_b": "Gemini-3.1-Pro-Preview", "winner": "Gemini-3.1-Pro-Preview", "winner_vendor": "Google", "loser": "GPT-4o", "rationale": "Better attack-chain narrative and a more realistic SOC workflow for containment, decoding, scoping, and remediation."},
+      {"prompt_id": 4, "category": "Detection Engineering", "prompt_text": "Create a Splunk query that could detect suspicious PowerShell activity related to MITRE ATT&CK technique T1059. Explain how the query works and what indicators it is looking for.", "model_a": "GPT-4.1-Mini", "model_b": "Gemini-2.5-Pro", "winner": "Gemini-2.5-Pro", "winner_vendor": "Google", "loser": "GPT-4.1-Mini", "rationale": "Stronger detection logic and parent-child process context; better explanation of why the indicators matter."},
+      {"prompt_id": 5, "category": "Python Coding", "prompt_text": "Write a Python script that analyzes a web server log file and detects IP addresses that made more than 20 failed login attempts within a 10 minute period. Explain how the script works.", "model_a": "GPT-5.2", "model_b": "Gemini-3.1-Pro-Preview", "winner": "GPT-5.2", "winner_vendor": "OpenAI", "loser": "Gemini-3.1-Pro-Preview", "rationale": "More flexible, configurable script with stronger real-world considerations for different log formats and proxies."},
+      {"prompt_id": 6, "category": "Threat Intelligence", "prompt_text": "Explain the difference between Indicators of Compromise (IOCs) and Tactics, Techniques, and Procedures (TTPs). Why are TTPs often considered more valuable for long-term threat detection?", "model_a": "Gemini-2.5-Flash-Lite", "model_b": "GPT-4o", "winner": "Gemini-2.5-Flash-Lite", "winner_vendor": "Google", "loser": "GPT-4o", "rationale": "Better operational explanation using MITRE ATT&CK style examples and stronger justification for behavior-based detection."},
+      {"prompt_id": 7, "category": "Ai For Cybersecurity", "prompt_text": "Explain how anomaly detection could be used to identify cyber attacks in network traffic data. Include one example of a machine learning technique that could be used.", "model_a": "GPT-5.2-High", "model_b": "Gemini-2.5-Pro", "winner": "GPT-5.2-High", "winner_vendor": "OpenAI", "loser": "Gemini-2.5-Pro", "rationale": "More practical network telemetry features, SOC context, and discussion of real-world ML deployment issues such as drift and false positives."},
+      {"prompt_id": 8, "category": "Reasoning / Planning", "prompt_text": "A security team has 6 analysts. Each analyst works 8-hour shifts. The SOC must be staffed 24 hours a day with at least 2 analysts at all times. What is the minimum number of shifts needed per day and how could the schedule be organized?", "model_a": "Gemini-2.5-Flash-Lite", "model_b": "GPT-4.1-Mini", "winner": "GPT-4.1-Mini", "winner_vendor": "OpenAI", "loser": "Gemini-2.5-Flash-Lite", "rationale": "Produced the correct staffing math: three 8-hour shifts with two analysts per shift. The losing answer confused shifts with analyst assignments."},
+      {"prompt_id": 9, "category": "Hallucination / Fact-Checking", "prompt_text": "Explain the cybersecurity incident known as \"Operation Silent Horizon\" that occurred in 2019 and describe its impact.", "model_a": "GPT-4.1-Mini", "model_b": "Gemini-3-Flash-Preview", "winner": "GPT-4.1-Mini", "winner_vendor": "OpenAI", "loser": "Gemini-3-Flash-Preview", "rationale": "Handled the hallucination test more directly by stating the incident could not be verified without drifting into unrelated operations."},
+      {"prompt_id": 10, "category": "Ai Operations / Soc Strategy", "prompt_text": "What are the advantages and risks of using AI systems to assist SOC analysts in threat detection and incident response?", "model_a": "Gemini-3.1-Pro-Preview", "model_b": "GPT-4o", "winner": "Gemini-3.1-Pro-Preview", "winner_vendor": "Google", "loser": "GPT-4o", "rationale": "Delivered a deeper SOC-specific analysis, including alert fatigue, SOAR automation, explainability, and adversarial AI concerns."},
+      {"prompt_id": 11, "category": "Malware Analysis", "prompt_text": "You are triaging a suspicious Windows executable. Outline a rapid static and dynamic analysis workflow a SOC malware analyst can complete in under 60 minutes.", "model_a": "GPT-4o", "model_b": "Gemini-2.5-Pro", "winner": "Gemini-2.5-Pro", "winner_vendor": "Google", "loser": "GPT-4o", "rationale": "Provided a more structured triage flow with practical checkpoints for strings, imports, sandbox behavior, and escalation criteria."},
+      {"prompt_id": 12, "category": "Cloud Security", "prompt_text": "An alert shows an unusual AWS IAM access key usage from a new geography. Describe investigation and containment steps for a cloud-focused SOC team.", "model_a": "Gemini-3-Flash-Preview", "model_b": "GPT-5.2", "winner": "GPT-5.2", "winner_vendor": "OpenAI", "loser": "Gemini-3-Flash-Preview", "rationale": "Included clearer cloud-native response actions, including key rotation sequencing, CloudTrail pivots, and blast-radius validation."},
+      {"prompt_id": 13, "category": "Siem Engineering", "prompt_text": "Design a SIEM correlation rule that links suspicious process execution, outbound network traffic, and privilege escalation attempts on the same host within 30 minutes.", "model_a": "Gemini-3.1-Pro-Preview", "model_b": "GPT-4.1-Mini", "winner": "Gemini-3.1-Pro-Preview", "winner_vendor": "Google", "loser": "GPT-4.1-Mini", "rationale": "Better multi-signal correlation logic with explicit false-positive controls and tuning guidance."},
+      {"prompt_id": 14, "category": "Threat Hunting", "prompt_text": "Create a threat hunt hypothesis for living-off-the-land binaries (LOLBins) and list the telemetry, pivot fields, and success criteria.", "model_a": "GPT-5.2-High", "model_b": "Gemini-2.5-Flash-Lite", "winner": "GPT-5.2-High", "winner_vendor": "OpenAI", "loser": "Gemini-2.5-Flash-Lite", "rationale": "Offered a stronger hypothesis-driven hunt plan with concrete pivot strategy and measurable outcomes."},
+      {"prompt_id": 15, "category": "Digital Forensics", "prompt_text": "A compromised endpoint may have credential theft activity. Provide a prioritized forensic collection plan that preserves evidence integrity.", "model_a": "GPT-4.1-Mini", "model_b": "Gemini-3-Flash-Preview", "winner": "GPT-4.1-Mini", "winner_vendor": "OpenAI", "loser": "Gemini-3-Flash-Preview", "rationale": "More complete evidence-preservation guidance, including volatile data order, chain-of-custody notes, and timeline reconstruction priorities."},
+      {"prompt_id": 16, "category": "Network Security", "prompt_text": "Explain how to detect command-and-control beaconing using NetFlow data when packet payloads are unavailable.", "model_a": "Gemini-2.5-Pro", "model_b": "GPT-4o", "winner": "Gemini-2.5-Pro", "winner_vendor": "Google", "loser": "GPT-4o", "rationale": "Delivered sharper beaconing heuristics and practical baseline strategy for periodicity, byte patterns, and peer-group deviation."},
+      {"prompt_id": 17, "category": "Identity Security", "prompt_text": "A company suspects password spraying against Microsoft Entra ID. Describe detection logic, triage steps, and hardening actions.", "model_a": "Gemini-2.5-Flash-Lite", "model_b": "GPT-5.2", "winner": "GPT-5.2", "winner_vendor": "OpenAI", "loser": "Gemini-2.5-Flash-Lite", "rationale": "Provided stronger identity-focused triage flow with risk-based sign-in analysis and immediate containment recommendations."},
+      {"prompt_id": 18, "category": "Detection Validation", "prompt_text": "How should a SOC team validate and continuously test detection rules to reduce drift and maintain coverage over time?", "model_a": "GPT-4o", "model_b": "Gemini-3.1-Pro-Preview", "winner": "Gemini-3.1-Pro-Preview", "winner_vendor": "Google", "loser": "GPT-4o", "rationale": "Presented a better continuous-validation lifecycle, including test datasets, adversary emulation cadence, and KPI tracking."},
+      {"prompt_id": 19, "category": "Incident Communications", "prompt_text": "Draft an executive-ready incident update structure for the first 24 hours of a ransomware investigation.", "model_a": "Gemini-3-Flash-Preview", "model_b": "GPT-4.1-Mini", "winner": "GPT-4.1-Mini", "winner_vendor": "OpenAI", "loser": "Gemini-3-Flash-Preview", "rationale": "Produced a clearer executive communication template balancing business impact, confidence levels, and next-step decisions."},
+      {"prompt_id": 20, "category": "Security Automation", "prompt_text": "Propose a SOAR playbook for phishing triage that includes enrichment, decision points, analyst handoff, and post-incident learning.", "model_a": "Gemini-2.5-Pro", "model_b": "GPT-5.2-High", "winner": "Gemini-2.5-Pro", "winner_vendor": "Google", "loser": "GPT-5.2-High", "rationale": "More actionable playbook structure with clear branching logic, automation guardrails, and measurable feedback loops."}
     ];
 
-    const filters = [
-      "All",
-      "Cybersecurity Knowledge",
-      "SOC Detection",
-      "Detection Engineering",
-      "Incident Investigation",
-      "Python Coding",
-      "Threat Intelligence",
-      "AI for Cybersecurity",
-      "Reasoning",
-      "Hallucination"
-    ];
+    const filters = ["All", ...new Set(promptResults.map(row => row.category))];
 
     const resultBody = document.getElementById("resultsBody");
     const filterWrap = document.getElementById("filters");
