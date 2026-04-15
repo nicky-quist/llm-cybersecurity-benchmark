@@ -11,10 +11,12 @@
       --surface-2: #1f2937;
       --text: #e5e7eb;
       --muted: #9ca3af;
-      --google: #16a34a;
-      --openai: #2563eb;
+      --google: #22c55e;
+      --openai: #60a5fa;
+      --accent: #38bdf8;
       --border: #334155;
       --shadow: rgba(0, 0, 0, 0.35);
+      --danger: #f87171;
     }
 
     * { box-sizing: border-box; }
@@ -28,13 +30,13 @@
     }
 
     .container {
-      max-width: 1200px;
+      max-width: 1280px;
       margin: 0 auto;
       padding: 32px 20px 48px;
     }
 
     h1 {
-      margin: 0 0 20px;
+      margin: 0 0 16px;
       font-size: clamp(1.4rem, 3vw, 2rem);
       letter-spacing: 0.2px;
     }
@@ -44,13 +46,13 @@
       color: #94a3b8;
       font-size: 0.95rem;
       line-height: 1.5;
-      max-width: 860px;
+      max-width: 900px;
     }
 
     .cards {
       display: grid;
-      grid-template-columns: repeat(2, minmax(220px, 1fr));
-      gap: 14px;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
       margin-bottom: 18px;
     }
 
@@ -58,44 +60,40 @@
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: 12px;
-      padding: 16px;
+      padding: 14px;
       box-shadow: 0 8px 24px var(--shadow);
     }
 
     .card h2 {
       margin: 0;
-      font-size: 0.95rem;
+      font-size: 0.78rem;
       color: var(--muted);
-      font-weight: 600;
+      font-weight: 700;
       text-transform: uppercase;
-      letter-spacing: 0.35px;
+      letter-spacing: 0.42px;
     }
 
     .card .count {
       display: block;
       margin-top: 6px;
-      font-size: 2rem;
+      font-size: 1.72rem;
       font-weight: 700;
     }
 
     .card.google .count { color: var(--google); }
     .card.openai .count { color: var(--openai); }
-
-    .page-footer {
-      margin-top: 24px;
-      padding: 14px 16px;
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      background: linear-gradient(180deg, #0d1628 0%, #0b1220 100%);
-      color: #93a6c6;
-      text-align: center;
-      font-size: 0.9rem;
-      letter-spacing: 0.15px;
+    .card.top-model .count {
+      color: var(--accent);
+      font-size: 1.1rem;
+      line-height: 1.5;
+      word-break: break-word;
     }
 
-    .page-footer strong {
-      color: #dbeafe;
-      font-weight: 600;
+    .card .substat {
+      display: block;
+      color: var(--muted);
+      margin-top: 2px;
+      font-size: 0.8rem;
     }
 
     .panel {
@@ -113,9 +111,31 @@
       background: var(--surface-2);
       border-bottom: 1px solid var(--border);
       font-size: 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
     }
 
-    .chart-wrap { padding: 16px; }
+    .chart-wrap {
+      padding: 14px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .chart-card {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: #0f1a2f;
+      padding: 12px;
+    }
+
+    .chart-card h4 {
+      margin: 0 0 8px;
+      font-size: 0.9rem;
+      color: #cbd5e1;
+    }
 
     .chart-axis-label {
       fill: var(--muted);
@@ -129,32 +149,69 @@
       text-anchor: middle;
     }
 
-    .filters {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
+    .controls {
+      display: grid;
+      gap: 10px;
       padding: 14px 16px;
       border-bottom: 1px solid var(--border);
       background: #0b1324;
     }
 
-    .filter-btn {
+    .filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .filters-label {
+      color: var(--muted);
+      font-size: 0.82rem;
+      margin: 0 0 4px;
+    }
+
+    .toolbar {
+      display: grid;
+      grid-template-columns: 1fr 180px;
+      gap: 8px;
+    }
+
+    .input,
+    .select,
+    .filter-btn,
+    .rationale-toggle {
       border: 1px solid var(--border);
       background: #0f1a2f;
       color: var(--text);
+      border-radius: 8px;
+      font-size: 0.84rem;
+    }
+
+    .input,
+    .select {
+      padding: 8px 10px;
+      width: 100%;
+    }
+
+    .filter-btn {
       padding: 7px 10px;
       border-radius: 999px;
-      font-size: 0.82rem;
       cursor: pointer;
       transition: all 120ms ease;
     }
 
-    .filter-btn:hover { border-color: #64748b; }
+    .filter-btn:hover,
+    .rationale-toggle:hover { border-color: #64748b; }
 
     .filter-btn.active {
       background: #1d4ed8;
       border-color: #1d4ed8;
       color: #fff;
+    }
+
+    .summary-note {
+      color: var(--muted);
+      font-size: 0.82rem;
+      padding: 0 16px 12px;
     }
 
     table {
@@ -181,8 +238,7 @@
 
     tbody tr.google { background: rgba(22, 163, 74, 0.16); }
     tbody tr.openai { background: rgba(37, 99, 235, 0.17); }
-
-    tbody tr:hover { filter: brightness(1.1); }
+    tbody tr:hover { filter: brightness(1.08); }
 
     .table-scroll {
       max-height: 520px;
@@ -190,32 +246,24 @@
     }
 
     .rationale-toggle {
-      border: 1px solid #475569;
-      background: #0f1a2f;
-      color: var(--text);
-      border-radius: 8px;
       padding: 6px 10px;
-      font-size: 0.8rem;
       cursor: pointer;
       margin-bottom: 8px;
     }
 
-    .rationale-preview {
-      color: #cbd5e1;
+    .rationale-preview,
+    .rationale-full {
       margin: 0;
-      line-height: 1.4;
+      line-height: 1.45;
     }
 
+    .rationale-preview { color: #cbd5e1; }
     .rationale-full {
       color: var(--text);
-      margin: 0;
-      line-height: 1.5;
       display: none;
     }
 
-    .rationale-full.show {
-      display: block;
-    }
+    .rationale-full.show { display: block; }
 
     .spotlight-grid {
       display: grid;
@@ -251,14 +299,62 @@
     }
 
     .losses {
-      color: #f87171;
+      color: var(--danger);
       font-weight: 600;
+    }
+
+    .matchups {
+      display: grid;
+      gap: 10px;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      padding: 14px 16px 16px;
+    }
+
+    .matchup-card {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: #0f1a2f;
+      padding: 12px;
+      display: grid;
+      gap: 4px;
+    }
+
+    .matchup-title {
+      font-weight: 600;
+      font-size: 0.9rem;
     }
 
     .muted { color: var(--muted); }
 
+    .empty-state {
+      padding: 20px;
+      color: #cbd5e1;
+      text-align: center;
+    }
+
+    .page-footer {
+      margin-top: 24px;
+      padding: 14px 16px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: linear-gradient(180deg, #0d1628 0%, #0b1220 100%);
+      color: #93a6c6;
+      text-align: center;
+      font-size: 0.9rem;
+      letter-spacing: 0.15px;
+    }
+
+    .page-footer strong {
+      color: #dbeafe;
+      font-weight: 600;
+    }
+
+    @media (max-width: 860px) {
+      .chart-wrap { grid-template-columns: 1fr; }
+      .toolbar { grid-template-columns: 1fr; }
+    }
+
     @media (max-width: 760px) {
-      .cards { grid-template-columns: 1fr; }
       th, td { font-size: 0.84rem; }
     }
   </style>
@@ -267,35 +363,75 @@
   <div class="container">
     <h1>LLM Cybersecurity Benchmark — SOC Task Evaluation</h1>
     <p class="hero-subtitle">
-      Side-by-side SOC prompt benchmarking across Google and OpenAI models, with category filters,
-      vendor performance summaries, and model-level win/loss spotlighting.
+      Side-by-side SOC prompt benchmarking across Google and OpenAI models, with category filtering,
+      quick search, sortable results, and matchup-level insights.
     </p>
 
     <section class="cards">
+      <article class="card">
+        <h2>Total Prompts</h2>
+        <span class="count" id="totalPrompts">0</span>
+      </article>
       <article class="card google">
         <h2>Google Wins</h2>
-        <span class="count" id="googleCount">6</span>
+        <span class="count" id="googleCount">0</span>
       </article>
       <article class="card openai">
         <h2>OpenAI Wins</h2>
-        <span class="count" id="openaiCount">4</span>
+        <span class="count" id="openaiCount">0</span>
+      </article>
+      <article class="card">
+        <h2>Models Compared</h2>
+        <span class="count" id="modelsCompared">0</span>
+      </article>
+      <article class="card top-model">
+        <h2>Top Model(s)</h2>
+        <span class="count" id="topModel">—</span>
+        <span class="substat" id="topModelWins"></span>
       </article>
     </section>
 
     <section class="panel">
-      <h3>Wins Per Model</h3>
+      <h3>Scoreboard</h3>
       <div class="chart-wrap">
-        <svg id="winsChart" viewBox="0 0 700 260" width="100%" aria-label="Bar chart of wins per model" role="img"></svg>
+        <div class="chart-card">
+          <h4>Wins by Vendor</h4>
+          <svg id="vendorChart" viewBox="0 0 700 260" width="100%" aria-label="Bar chart of wins by vendor" role="img"></svg>
+        </div>
+        <div class="chart-card">
+          <h4>Top 8 Models by Wins</h4>
+          <svg id="modelChart" viewBox="0 0 700 300" width="100%" aria-label="Bar chart of top models by wins" role="img"></svg>
+        </div>
       </div>
     </section>
 
     <section class="panel">
       <h3>Prompt-Level Results <span class="muted" id="resultCount"></span></h3>
-      <div class="filters" id="filters"></div>
+      <div class="controls">
+        <div>
+          <p class="filters-label">Category filters</p>
+          <div class="filters" id="filters"></div>
+        </div>
+        <div class="toolbar">
+          <input id="searchInput" class="input" type="search" placeholder="Search by category, winner, loser, or prompt text..." aria-label="Search prompt results" />
+          <select id="sortSelect" class="select" aria-label="Sort prompt results">
+            <option value="prompt_asc">Prompt # (ascending)</option>
+            <option value="prompt_desc">Prompt # (descending)</option>
+            <option value="winner_asc">Winner (A → Z)</option>
+            <option value="winner_desc">Winner (Z → A)</option>
+            <option value="vendor_asc">Vendor (A → Z)</option>
+            <option value="vendor_desc">Vendor (Z → A)</option>
+            <option value="category_asc">Category (A → Z)</option>
+            <option value="category_desc">Category (Z → A)</option>
+          </select>
+        </div>
+      </div>
+      <p class="summary-note" id="categorySummary">Showing all categories.</p>
       <div class="table-scroll">
         <table>
           <thead>
             <tr>
+              <th>Prompt #</th>
               <th>Category</th>
               <th>Winner</th>
               <th>Vendor</th>
@@ -312,13 +448,17 @@
       <div class="spotlight-grid" id="spotlightGrid"></div>
     </section>
 
+    <section class="panel">
+      <h3>Head-to-Head Matchup Highlights</h3>
+      <div class="matchups" id="matchupGrid"></div>
+    </section>
+
     <footer class="page-footer">
       <strong>Built by Nicholas Quist</strong> · github.com/nicky-quist · Submitted to the Codex Creator Challenge 2026
     </footer>
   </div>
 
   <script>
-    // Hardcoded CSV rows as JavaScript objects.
     const promptResults = [
       {"prompt_id": 1, "category": "Cybersecurity Knowledge", "prompt_text": "Explain the MITRE ATT&CK technique T1059 (Command and Scripting Interpreter). Include how attackers use it and one real-world example of an attack that used it.", "model_a": "Gemini-3-Flash-Preview", "model_b": "GPT-5.2", "winner": "Gemini-3-Flash-Preview", "winner_vendor": "Google", "loser": "GPT-5.2", "rationale": "More complete T1059 explanation with a stronger real-world example and clearer defensive context."},
       {"prompt_id": 2, "category": "Soc Detection", "prompt_text": "From a SOC analyst perspective, what detection methods could identify malicious use of T1059 (Command and Scripting Interpreter)? Include specific Windows event logs, telemetry sources, or security monitoring techniques that could help detect this activity.", "model_a": "Gemini-2.5-Flash-Lite", "model_b": "GPT-4.1-Mini", "winner": "Gemini-2.5-Flash-Lite", "winner_vendor": "Google", "loser": "GPT-4.1-Mini", "rationale": "Provided deeper SOC detection coverage, including specific hunting ideas and more operationally useful telemetry guidance."},
@@ -348,6 +488,10 @@
     const filterWrap = document.getElementById("filters");
     const resultCount = document.getElementById("resultCount");
     const spotlightGrid = document.getElementById("spotlightGrid");
+    const matchupGrid = document.getElementById("matchupGrid");
+    const searchInput = document.getElementById("searchInput");
+    const sortSelect = document.getElementById("sortSelect");
+    const categorySummary = document.getElementById("categorySummary");
 
     let activeFilter = "All";
 
@@ -359,22 +503,26 @@
       }, { Google: 0, OpenAI: 0 });
     }
 
-    function drawBarChart(data) {
-      const svg = document.getElementById("winsChart");
-      const counts = getSummaryCounts(data);
-      const series = [
-        { label: "Google", value: counts.Google, color: "#16a34a" },
-        { label: "OpenAI", value: counts.OpenAI, color: "#2563eb" }
-      ];
+    function buildModelRecords(data) {
+      const records = {};
+      data.forEach(row => {
+        if (!records[row.winner]) records[row.winner] = { wins: 0, losses: 0, vendor: row.winner_vendor };
+        if (!records[row.loser]) records[row.loser] = { wins: 0, losses: 0, vendor: row.winner.startsWith("Gemini") ? "Google" : "OpenAI" };
+        records[row.winner].wins += 1;
+        records[row.loser].losses += 1;
+      });
+      return Object.entries(records)
+        .map(([model, record]) => ({ model, ...record }))
+        .sort((a, b) => b.wins - a.wins || a.losses - b.losses || a.model.localeCompare(b.model));
+    }
 
-      const width = 700;
-      const height = 260;
-      const pad = { top: 20, right: 30, bottom: 45, left: 40 };
+    function drawBarChart(svgId, series, { width = 700, height = 260, gap = 22 } = {}) {
+      const svg = document.getElementById(svgId);
+      const pad = { top: 20, right: 20, bottom: 45, left: 42 };
       const plotW = width - pad.left - pad.right;
       const plotH = height - pad.top - pad.bottom;
       const maxY = Math.max(...series.map(s => s.value), 1);
-      const gap = 80;
-      const barW = (plotW - gap * (series.length - 1)) / series.length;
+      const barW = Math.max(22, (plotW - gap * (series.length - 1)) / series.length);
 
       const axisY = pad.top + plotH;
       let markup = `<line x1="${pad.left}" y1="${axisY}" x2="${width - pad.right}" y2="${axisY}" stroke="#475569" stroke-width="1"/>`;
@@ -385,7 +533,7 @@
         const y = axisY - h;
 
         markup += `
-          <rect x="${x}" y="${y}" width="${barW}" height="${h}" rx="8" fill="${s.color}"></rect>
+          <rect x="${x}" y="${y}" width="${barW}" height="${h}" rx="7" fill="${s.color}"></rect>
           <text x="${x + barW / 2}" y="${y - 8}" class="chart-value">${s.value}</text>
           <text x="${x + barW / 2}" y="${axisY + 22}" class="chart-axis-label" text-anchor="middle">${s.label}</text>
         `;
@@ -409,30 +557,69 @@
       });
     }
 
-    function renderTable() {
-      const filtered = activeFilter === "All"
-        ? promptResults
+    function compareRows(sortMode, a, b) {
+      const dir = sortMode.endsWith("_desc") ? -1 : 1;
+      const key = sortMode.split("_")[0];
+      if (key === "prompt") return (a.prompt_id - b.prompt_id) * dir;
+      if (key === "winner") return a.winner.localeCompare(b.winner) * dir;
+      if (key === "vendor") return a.winner_vendor.localeCompare(b.winner_vendor) * dir;
+      if (key === "category") return a.category.localeCompare(b.category) * dir;
+      return 0;
+    }
+
+    function getFilteredRows() {
+      const search = searchInput.value.trim().toLowerCase();
+      let rows = activeFilter === "All"
+        ? [...promptResults]
         : promptResults.filter(row => row.category === activeFilter);
 
-      resultBody.innerHTML = filtered.map(row => {
-        const cssClass = row.winner_vendor === "Google" ? "google" : "openai";
-        const preview = row.rationale.length > 90
-          ? `${row.rationale.slice(0, 90)}...`
-          : row.rationale;
-        return `
-          <tr class="${cssClass}">
-            <td>${row.category}</td>
-            <td>${row.winner}</td>
-            <td>${row.winner_vendor}</td>
-            <td>
-              <button class="rationale-toggle" type="button">Show rationale</button>
-              <p class="rationale-preview">${preview}</p>
-              <p class="rationale-full">${row.rationale}</p>
-            </td>
-          </tr>
-        `;
-      }).join("");
+      if (search) {
+        rows = rows.filter(row =>
+          [
+            row.category,
+            row.winner,
+            row.loser,
+            row.winner_vendor,
+            row.prompt_text,
+            row.rationale
+          ].join(" ").toLowerCase().includes(search)
+        );
+      }
 
+      rows.sort((a, b) => compareRows(sortSelect.value, a, b));
+      return rows;
+    }
+
+    function renderTable() {
+      const filtered = getFilteredRows();
+
+      if (!filtered.length) {
+        resultBody.innerHTML = `<tr><td colspan="5" class="empty-state">No rows matched your filter/search criteria.</td></tr>`;
+      } else {
+        resultBody.innerHTML = filtered.map(row => {
+          const cssClass = row.winner_vendor === "Google" ? "google" : "openai";
+          const preview = row.rationale.length > 95
+            ? `${row.rationale.slice(0, 95)}...`
+            : row.rationale;
+          return `
+            <tr class="${cssClass}">
+              <td>${row.prompt_id}</td>
+              <td>${row.category}</td>
+              <td>${row.winner}</td>
+              <td>${row.winner_vendor}</td>
+              <td>
+                <button class="rationale-toggle" type="button">Show rationale</button>
+                <p class="rationale-preview">${preview}</p>
+                <p class="rationale-full">${row.rationale}</p>
+              </td>
+            </tr>
+          `;
+        }).join("");
+      }
+
+      const categoryText = activeFilter === "All" ? "all categories" : `category: ${activeFilter}`;
+      const searchText = searchInput.value.trim() ? ` with search: “${searchInput.value.trim()}”` : "";
+      categorySummary.textContent = `Showing ${categoryText}${searchText}.`;
       resultCount.textContent = `(${filtered.length} of ${promptResults.length})`;
 
       resultBody.querySelectorAll(".rationale-toggle").forEach(button => {
@@ -448,38 +635,85 @@
       });
     }
 
-    function buildModelRecords(data) {
-      const records = {};
-      data.forEach(row => {
-        if (!records[row.winner]) records[row.winner] = { wins: 0, losses: 0 };
-        if (!records[row.loser]) records[row.loser] = { wins: 0, losses: 0 };
-        records[row.winner].wins += 1;
-        records[row.loser].losses += 1;
-      });
-      return Object.entries(records)
-        .map(([model, record]) => ({ model, ...record }))
-        .sort((a, b) => b.wins - a.wins || a.losses - b.losses || a.model.localeCompare(b.model));
-    }
-
     function renderModelSpotlight() {
       const records = buildModelRecords(promptResults);
-      spotlightGrid.innerHTML = records.map(({ model, wins, losses }) => `
-        <article class="spotlight-card">
-          <h4>${model}</h4>
-          <div class="spotlight-stat"><span>Wins</span><span class="wins">${wins}</span></div>
-          <div class="spotlight-stat"><span>Losses</span><span class="losses">${losses}</span></div>
-        </article>
-      `).join("");
+      spotlightGrid.innerHTML = records.map(({ model, wins, losses }) => {
+        const winRate = wins + losses ? ((wins / (wins + losses)) * 100).toFixed(1) : "0.0";
+        return `
+          <article class="spotlight-card">
+            <h4>${model}</h4>
+            <div class="spotlight-stat"><span>Wins</span><span class="wins">${wins}</span></div>
+            <div class="spotlight-stat"><span>Losses</span><span class="losses">${losses}</span></div>
+            <div class="spotlight-stat"><span>Win Rate</span><span>${winRate}%</span></div>
+          </article>
+        `;
+      }).join("");
+    }
+
+    function renderMatchups() {
+      const matchupMap = {};
+      promptResults.forEach(row => {
+        const pair = [row.model_a, row.model_b].sort().join(" vs ");
+        if (!matchupMap[pair]) {
+          matchupMap[pair] = { pair, total: 0, winners: {} };
+        }
+        matchupMap[pair].total += 1;
+        matchupMap[pair].winners[row.winner] = (matchupMap[pair].winners[row.winner] || 0) + 1;
+      });
+
+      const matchups = Object.values(matchupMap)
+        .sort((a, b) => b.total - a.total || a.pair.localeCompare(b.pair));
+
+      matchupGrid.innerHTML = matchups.map(m => {
+        const winnerLine = Object.entries(m.winners)
+          .map(([model, wins]) => `${model}: ${wins}`)
+          .join(" · ");
+        return `
+          <article class="matchup-card">
+            <div class="matchup-title">${m.pair}</div>
+            <div class="muted">Comparisons: ${m.total}</div>
+            <div>${winnerLine}</div>
+          </article>
+        `;
+      }).join("");
+    }
+
+    function renderTopCards() {
+      const counts = getSummaryCounts(promptResults);
+      const modelRecords = buildModelRecords(promptResults);
+      const topWinCount = modelRecords.length ? modelRecords[0].wins : 0;
+      const topModels = modelRecords.filter(row => row.wins === topWinCount).map(row => row.model);
+
+      document.getElementById("totalPrompts").textContent = promptResults.length;
+      document.getElementById("googleCount").textContent = counts.Google;
+      document.getElementById("openaiCount").textContent = counts.OpenAI;
+      document.getElementById("modelsCompared").textContent = modelRecords.length;
+      document.getElementById("topModel").textContent = topModels.join(", ");
+      document.getElementById("topModelWins").textContent = `${topWinCount} wins each`;
+
+      drawBarChart("vendorChart", [
+        { label: "Google", value: counts.Google, color: "#16a34a" },
+        { label: "OpenAI", value: counts.OpenAI, color: "#2563eb" }
+      ], { height: 260, gap: 120 });
+
+      const modelSeries = modelRecords.slice(0, 8).map(row => ({
+        label: row.model.replace("Gemini-", "G-").replace("GPT-", "GPT-"),
+        value: row.wins,
+        color: row.model.startsWith("Gemini") ? "#16a34a" : "#2563eb"
+      }));
+
+      drawBarChart("modelChart", modelSeries, { height: 300, gap: 18 });
     }
 
     function init() {
-      const counts = getSummaryCounts(promptResults);
-      document.getElementById("googleCount").textContent = counts.Google;
-      document.getElementById("openaiCount").textContent = counts.OpenAI;
-      drawBarChart(promptResults);
+      renderTopCards();
       renderFilters();
       renderTable();
       renderModelSpotlight();
+      renderMatchups();
+
+      searchInput.addEventListener("input", renderTable);
+      sortSelect.addEventListener("change", renderTable);
     }
 
     init();
