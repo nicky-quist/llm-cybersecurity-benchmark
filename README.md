@@ -1,21 +1,21 @@
 # LLM Evaluation for Cybersecurity SOC Tasks
 
-A small benchmarking project comparing different large language models on cybersecurity and SOC-oriented tasks using **Handshake AI Versus** pairwise comparisons.
+A benchmarking project comparing different large language models on cybersecurity and SOC-oriented tasks using **Handshake AI Versus** pairwise comparisons.
 
 ## Project Goal
 
-This project evaluates how different LLMs perform on technical tasks that matter in a SOC or security engineering workflow, including:
+This project evaluates how different LLMs perform on technical tasks that matter in SOC and security engineering workflows, including:
 
 - MITRE ATT&CK explanation
 - SOC detection guidance
 - incident investigation
-- Splunk detection engineering
+- detection engineering
 - Python scripting
 - threat intelligence concepts
 - anomaly detection for cyber
-- reasoning and planning
 - hallucination resistance
-- AI-in-SOC strategic analysis
+- cloud and identity security workflows
+- security automation and incident communication
 
 Rather than claiming broad model superiority, this project explores whether **different models perform better on different cybersecurity task types**.
 
@@ -23,15 +23,16 @@ Rather than claiming broad model superiority, this project explores whether **di
 
 - Platform: Handshake AI Versus
 - Evaluation design: pairwise model comparisons
-- Number of prompts: 10
+- Number of prompts: 20
 - Domains tested:
   - cybersecurity knowledge
   - SOC detection and IR
   - detection engineering
   - coding
-  - reasoning
+  - reasoning and planning
   - hallucination handling
-  - AI for cyber operations
+  - cloud/identity/network security
+  - security operations strategy
 
 Each comparison was judged on a blend of:
 
@@ -48,36 +49,35 @@ Each comparison was judged on a blend of:
 
 | Model | Wins |
 |---|---:|
+| Gemini-2.5-Pro | 4 |
+| Gemini-3.1-Pro-Preview | 4 |
+| GPT-4.1-Mini | 4 |
+| GPT-5.2 | 3 |
 | Gemini-2.5-Flash-Lite | 2 |
-| Gemini-3.1-Pro-Preview | 2 |
-| GPT-4.1-Mini | 2 |
+| GPT-5.2-High | 2 |
 | Gemini-3-Flash-Preview | 1 |
-| Gemini-2.5-Pro | 1 |
-| GPT-5.2 | 1 |
-| GPT-5.2-High | 1 |
 
 ### Wins by vendor
 
 | Vendor | Wins |
 |---|---:|
-| Google | 6 |
-| OpenAI | 4 |
+| Google | 11 |
+| OpenAI | 9 |
 
 ### Key takeaways
 
-- No single model dominated every category.
-- **Gemini-3.1-Pro-Preview** and **GPT-4.1-Mini** tied for the highest number of wins in this test set.
-- Google models performed especially well on **SOC explanation, detection guidance, and strategic cyber reasoning** tasks.
-- OpenAI models performed especially well on **Python scripting, anomaly detection framing, hallucination handling, and logic/math correctness** in this sample.
-- The results suggest that model choice may depend on the task:
-  - deeper cyber narrative and detection guidance vs.
-  - concise correctness, coding robustness, and refusal behavior.
+- The expanded run still shows **no single model dominating every category**.
+- Top performers are tightly clustered, with three models tied at 4 wins each.
+- Google models led this sample overall (11/20), while OpenAI models remained competitive (9/20).
+- Results continue to suggest model selection should be **task-specific** (e.g., detection narrative depth vs concise coding/triage output quality).
 
 ## Repository Structure
 
 ```text
 llm-cybersecurity-benchmark/
 ├── README.md
+├── dashboard/
+│   └── index.html
 ├── data/
 │   ├── prompt_results.csv
 │   ├── model_wins.csv
@@ -92,27 +92,14 @@ llm-cybersecurity-benchmark/
 
 ## Prompt Set
 
-The exact prompts used are stored in `data/prompt_results.csv`.
-
-Prompt categories included:
-
-1. MITRE ATT&CK T1059 explanation
-2. SOC detection methods for T1059
-3. Phishing-to-PowerShell incident investigation
-4. Splunk query for suspicious PowerShell
-5. Python brute-force detection script
-6. IOC vs TTP explanation
-7. Anomaly detection in network traffic
-8. SOC staffing math
-9. Hallucination test with a nonexistent incident
-10. AI advantages and risks in SOC operations
+The full prompt set is stored in `data/prompt_results.csv` (20 rows).
 
 ## Limitations
 
-- Small sample size: only {len(df)} prompts.
-- Pairwise testing means not every model was tested against every other model.
+- Sample size is still modest relative to production benchmark suites.
+- Pairwise testing means not every model was tested against every other model evenly.
 - Judging was human-guided rather than automated with a strict numeric rubric.
-- Prompt phrasing and the chosen model matchups can affect outcomes.
+- Prompt phrasing and chosen model matchups can affect outcomes.
 
 ## Why this project matters
 
@@ -123,5 +110,4 @@ For security teams, LLM adoption is not just about "best model overall." It is a
 - Which model is strongest at coding or analytics tasks?
 - Which model behaves safely on hallucination tests?
 
-This repo shows one lightweight way to evaluate those questions.
-
+This repo shows one lightweight way to evaluate those questions and iterate with more evidence over time.
