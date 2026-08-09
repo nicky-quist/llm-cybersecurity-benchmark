@@ -2,6 +2,8 @@
 
 A benchmarking project comparing different large language models on cybersecurity and SOC-oriented tasks using **Handshake AI Versus** pairwise comparisons.
 
+**[Live dashboard →](https://nicky-quist.github.io/llm-cybersecurity-benchmark/dashboard/index.html)**
+
 ## Project Goal
 
 This project evaluates how different LLMs perform on technical tasks that matter in SOC and security engineering workflows, including:
