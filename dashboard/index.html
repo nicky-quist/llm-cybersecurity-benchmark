@@ -393,14 +393,24 @@
 
     <section class="panel">
       <h3>Scoreboard</h3>
+      <div style="border-left:4px solid #f59e0b;background:rgba(245,158,11,0.08);padding:14px 18px;margin:0 0 18px;border-radius:6px;line-height:1.6">
+        <strong>Read these charts with the sample size in mind.</strong>
+        Twenty comparisons across eight models means each model appears 3&ndash;7 times.
+        The vendor split (Google 11, OpenAI 9) has an exact two-sided binomial
+        <em>p</em> = 0.82 against a 50/50 null &mdash; a gap a fair coin produces routinely.
+        Fitting a Bradley&ndash;Terry model, <strong>only GPT-4o&rsquo;s interval excludes parity</strong>;
+        every other model overlaps it. The one finding this data supports is that GPT-4o
+        lost all six of its comparisons. Nothing here ranks the rest.
+        <br><span style="opacity:0.75">Run <code>python analysis/statistics.py</code> for the full report.</span>
+      </div>
       <div class="chart-wrap">
         <div class="chart-card">
-          <h4>Wins by Vendor</h4>
+          <h4>Wins by Vendor <span style="font-weight:400;opacity:0.7">(p = 0.82, not significant)</span></h4>
           <svg id="vendorChart" viewBox="0 0 700 260" width="100%" aria-label="Bar chart of wins by vendor" role="img"></svg>
         </div>
         <div class="chart-card">
-          <h4>Top 8 Models by Wins</h4>
-          <svg id="modelChart" viewBox="0 0 700 300" width="100%" aria-label="Bar chart of top models by wins" role="img"></svg>
+          <h4>Wins by Model <span style="font-weight:400;opacity:0.7">(wins / appearances)</span></h4>
+          <svg id="modelChart" viewBox="0 0 700 300" width="100%" aria-label="Bar chart of models by wins, labelled with appearances" role="img"></svg>
         </div>
       </div>
     </section>
@@ -503,17 +513,42 @@
       }, { Google: 0, OpenAI: 0 });
     }
 
+    // Vendor comes from the model's own name. The previous version derived a
+    // losing model's vendor from the WINNER's name, which labelled GPT-4.1-Mini,
+    // GPT-4o and GPT-5.2 as Google.
+    function vendorOf(model) {
+      return model.startsWith("Gemini") ? "Google" : "OpenAI";
+    }
+
+    // Wilson score interval. The normal approximation returns a zero-width
+    // interval at 0/6, which is exactly where GPT-4o sits.
+    function wilson(wins, n, z = 1.959964) {
+      if (!n) return [0, 1];
+      const p = wins / n;
+      const denom = 1 + (z * z) / n;
+      const centre = (p + (z * z) / (2 * n)) / denom;
+      const margin = (z * Math.sqrt((p * (1 - p)) / n + (z * z) / (4 * n * n))) / denom;
+      return [Math.max(0, centre - margin), Math.min(1, centre + margin)];
+    }
+
     function buildModelRecords(data) {
       const records = {};
       data.forEach(row => {
-        if (!records[row.winner]) records[row.winner] = { wins: 0, losses: 0, vendor: row.winner_vendor };
-        if (!records[row.loser]) records[row.loser] = { wins: 0, losses: 0, vendor: row.winner.startsWith("Gemini") ? "Google" : "OpenAI" };
+        [row.winner, row.loser].forEach(model => {
+          if (!records[model]) records[model] = { wins: 0, losses: 0, vendor: vendorOf(model) };
+        });
         records[row.winner].wins += 1;
         records[row.loser].losses += 1;
       });
       return Object.entries(records)
-        .map(([model, record]) => ({ model, ...record }))
-        .sort((a, b) => b.wins - a.wins || a.losses - b.losses || a.model.localeCompare(b.model));
+        .map(([model, record]) => {
+          const appearances = record.wins + record.losses;
+          const [lo, hi] = wilson(record.wins, appearances);
+          return { model, ...record, appearances, winRate: appearances ? record.wins / appearances : 0, ciLow: lo, ciHigh: hi };
+        })
+        // Ranked by win rate, not raw wins: appearances range from 3 to 7 here,
+        // so a raw count measures how often a model was drawn as much as how it did.
+        .sort((a, b) => b.winRate - a.winRate || b.appearances - a.appearances || a.model.localeCompare(b.model));
     }
 
     function drawBarChart(svgId, series, { width = 700, height = 260, gap = 22 } = {}) {
@@ -637,14 +672,15 @@
 
     function renderModelSpotlight() {
       const records = buildModelRecords(promptResults);
-      spotlightGrid.innerHTML = records.map(({ model, wins, losses }) => {
-        const winRate = wins + losses ? ((wins / (wins + losses)) * 100).toFixed(1) : "0.0";
+      spotlightGrid.innerHTML = records.map(({ model, wins, losses, appearances, winRate, ciLow, ciHigh }) => {
         return `
           <article class="spotlight-card">
             <h4>${model}</h4>
+            <div class="spotlight-stat"><span>Appearances</span><span>${appearances}</span></div>
             <div class="spotlight-stat"><span>Wins</span><span class="wins">${wins}</span></div>
             <div class="spotlight-stat"><span>Losses</span><span class="losses">${losses}</span></div>
-            <div class="spotlight-stat"><span>Win Rate</span><span>${winRate}%</span></div>
+            <div class="spotlight-stat"><span>Win Rate</span><span>${(winRate * 100).toFixed(0)}%</span></div>
+            <div class="spotlight-stat"><span>95% CI</span><span style="font-size:0.85em;opacity:0.75">${(ciLow * 100).toFixed(0)}%&ndash;${(ciHigh * 100).toFixed(0)}%</span></div>
           </article>
         `;
       }).join("");
@@ -681,25 +717,26 @@
     function renderTopCards() {
       const counts = getSummaryCounts(promptResults);
       const modelRecords = buildModelRecords(promptResults);
-      const topWinCount = modelRecords.length ? modelRecords[0].wins : 0;
-      const topModels = modelRecords.filter(row => row.wins === topWinCount).map(row => row.model);
+      const topRate = modelRecords.length ? modelRecords[0].winRate : 0;
+      const topModels = modelRecords.filter(row => row.winRate === topRate).map(row => row.model);
 
       document.getElementById("totalPrompts").textContent = promptResults.length;
       document.getElementById("googleCount").textContent = counts.Google;
       document.getElementById("openaiCount").textContent = counts.OpenAI;
       document.getElementById("modelsCompared").textContent = modelRecords.length;
       document.getElementById("topModel").textContent = topModels.join(", ");
-      document.getElementById("topModelWins").textContent = `${topWinCount} wins each`;
+      document.getElementById("topModelWins").textContent =
+        `${(topRate * 100).toFixed(0)}% win rate — not separated from the field at n=20`;
 
       drawBarChart("vendorChart", [
         { label: "Google", value: counts.Google, color: "#16a34a" },
         { label: "OpenAI", value: counts.OpenAI, color: "#2563eb" }
       ], { height: 260, gap: 120 });
 
-      const modelSeries = modelRecords.slice(0, 8).map(row => ({
-        label: row.model.replace("Gemini-", "G-").replace("GPT-", "GPT-"),
+      const modelSeries = modelRecords.map(row => ({
+        label: `${row.model.replace("Gemini-", "G-")} (${row.wins}/${row.appearances})`,
         value: row.wins,
-        color: row.model.startsWith("Gemini") ? "#16a34a" : "#2563eb"
+        color: vendorOf(row.model) === "Google" ? "#16a34a" : "#2563eb"
       }));
 
       drawBarChart("modelChart", modelSeries, { height: 300, gap: 18 });

