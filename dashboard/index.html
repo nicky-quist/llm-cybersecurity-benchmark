@@ -4,6 +4,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>LLM Cybersecurity Benchmark — SOC Task Evaluation</title>
+  <meta name="description" content="Side-by-side SOC prompt benchmarking across Google and OpenAI models — category filtering, sortable results, and matchup-level insights." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
   <style>
     :root {
       --bg: #0f172a;
@@ -23,10 +27,17 @@
 
     body {
       margin: 0;
-      font-family: Inter, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      font-family: 'Inter', Segoe UI, Roboto, Helvetica, Arial, sans-serif;
       background: linear-gradient(180deg, #0b1220 0%, var(--bg) 100%);
       color: var(--text);
       min-height: 100vh;
+    }
+
+    body::before {
+      content: '';
+      display: block;
+      height: 3px;
+      background: linear-gradient(90deg, #38bdf8 0%, #818cf8 50%, #60a5fa 100%);
     }
 
     .container {
@@ -39,7 +50,23 @@
       margin: 0 0 16px;
       font-size: clamp(1.4rem, 3vw, 2rem);
       letter-spacing: 0.2px;
+      font-weight: 800;
+      background: linear-gradient(90deg, #e2e8f0 0%, #93c5fd 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
     }
+
+    code, .mono {
+      font-family: 'JetBrains Mono', 'SFMono-Regular', Consolas, monospace;
+      font-size: 0.85em;
+    }
+
+    tbody tr { transition: filter 0.12s; }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #0b1220; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #38bdf8; }
 
     .hero-subtitle {
       margin: 0 0 24px;
@@ -62,6 +89,12 @@
       border-radius: 12px;
       padding: 14px;
       box-shadow: 0 8px 24px var(--shadow);
+      transition: box-shadow 0.2s, border-color 0.2s;
+    }
+
+    .card:hover {
+      border-color: #475569;
+      box-shadow: 0 12px 32px rgba(0,0,0,0.5);
     }
 
     .card h2 {
@@ -196,16 +229,21 @@
       padding: 7px 10px;
       border-radius: 999px;
       cursor: pointer;
-      transition: all 120ms ease;
+      transition: all 150ms ease;
     }
 
-    .filter-btn:hover,
+    .filter-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
     .rationale-toggle:hover { border-color: #64748b; }
 
     .filter-btn.active {
       background: #1d4ed8;
       border-color: #1d4ed8;
       color: #fff;
+      box-shadow: 0 0 12px rgba(37,99,235,0.35);
     }
 
     .summary-note {
