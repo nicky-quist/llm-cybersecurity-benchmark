@@ -27,9 +27,10 @@ Rather than claiming broad model superiority, this project explores whether **di
 
 ## Methodology
 
-- Platform: Handshake AI Versus
+- Platform: Handshake AI Versus (round one — **no longer reachable**; see
+  [the collection harness](harness/) for what replaces it)
 - Evaluation design: pairwise model comparisons
-- Number of prompts: 20
+- Number of prompts: 20 (round 1); 28 comparisons total across two rounds
 - Domains tested:
   - cybersecurity knowledge
   - SOC detection and IR
@@ -51,42 +52,73 @@ Each comparison was judged on a blend of:
 
 ## Results
 
-Eight models, twenty pairwise comparisons. Every number below is regenerated from
-`data/prompt_results.csv` by `analysis/statistics.py` — none of it is maintained by hand.
+**Eleven models, twenty-eight pairwise comparisons, three vendors.** Every number below is
+regenerated from `data/prompt_results.csv` by `analysis/statistics.py` — none of it is
+maintained by hand.
+
+The comparisons come from two rounds, and they are **not** methodologically equivalent.
+Round 1 (20 comparisons) was scored in Handshake AI Versus by a single judge who could see
+which model wrote which answer, with no responses archived. Round 2 (8 comparisons) was
+scored through the blind A/B interface in `harness/`, with every raw response saved to
+`responses/` first. The `round` column in `prompt_results.csv` keeps them separable; treat
+any aggregate over both as carrying round 1's limitations.
 
 ![Win rate by model with 95% Wilson intervals](visualizations/wins_by_model.png)
 
 ### Per model
 
 Win rate with a 95% Wilson score interval. **Appearances are shown because raw win
-counts are not comparable across models drawn a different number of times** — GPT-4.1-Mini
-and Gemini-2.5-Pro both have 4 wins, from 7 and 5 appearances respectively.
+counts are not comparable across models drawn a different number of times** —
+Gemini-3.1-Pro-Preview and GPT-4.1-Mini both have 5 wins, from 7 and 11 appearances
+respectively, which is a 71% rate against a 45% one.
 
-| Model | Appearances | W | L | Win rate | 95% CI |
-|---|---:|---:|---:|---:|---|
-| Gemini-2.5-Pro | 5 | 4 | 1 | 80% | 38%–96% |
-| Gemini-3.1-Pro-Preview | 5 | 4 | 1 | 80% | 38%–96% |
-| GPT-5.2 | 4 | 3 | 1 | 75% | 30%–95% |
-| GPT-5.2-High | 3 | 2 | 1 | 67% | 21%–94% |
-| GPT-4.1-Mini | 7 | 4 | 3 | 57% | 25%–84% |
-| Gemini-2.5-Flash-Lite | 5 | 2 | 3 | 40% | 12%–77% |
-| Gemini-3-Flash-Preview | 5 | 1 | 4 | 20% | 4%–62% |
-| **GPT-4o** | **6** | **0** | **6** | **0%** | **0%–39%** |
+| Model | Vendor | Appearances | W | L | Win rate | 95% CI |
+|---|---|---:|---:|---:|---:|---|
+| Gemini-2.5-Flash | Google | 1 | 1 | 0 | 100% | 21%–100% |
+| Gemini-3.6-Flash | Google | 1 | 1 | 0 | 100% | 21%–100% |
+| Gemini-2.5-Pro | Google | 5 | 4 | 1 | 80% | 38%–96% |
+| Claude-Opus-5 | Anthropic | 4 | 3 | 1 | 75% | 30%–95% |
+| Gemini-3.1-Pro-Preview | Google | 7 | 5 | 2 | 71% | 36%–92% |
+| GPT-5.2 | OpenAI | 6 | 4 | 2 | 67% | 30%–90% |
+| GPT-4.1-Mini | OpenAI | 11 | 5 | 6 | 45% | 21%–72% |
+| GPT-5.2-High | OpenAI | 5 | 2 | 3 | 40% | 12%–77% |
+| Gemini-2.5-Flash-Lite | Google | 5 | 2 | 3 | 40% | 12%–77% |
+| Gemini-3-Flash-Preview | Google | 5 | 1 | 4 | 20% | 4%–62% |
+| **GPT-4o** | **OpenAI** | **6** | **0** | **6** | **0%** | **0%–39%** |
 
-Every interval is enormous — the widest spans 73 points. At three to seven appearances
-per model that is the honest precision of this design, and it does not resolve the ordering.
+Every interval is enormous — the widest spans 79 points. At one to eleven appearances per
+model that is the honest precision of this design, and it does not resolve the ordering.
+
+**Seven of the eleven models were drawn too few times for any record to reach p ≤ 0.05.**
+At five appearances a model that wins every comparison still lands at p = 0.06; at one
+appearance nothing is testable at all. That is a property of the schedule, fixed before a
+single response was read, and it is the specific defect `harness/schedule.py` exists to
+prevent in the next round.
 
 ### Vendor split
 
-| Vendor | Wins | Win rate | 95% CI |
-|---|---:|---:|---|
-| Google | 11/20 | 55% | 34%–74% |
-| OpenAI | 9/20 | 45% | 26%–66% |
+27 of the 28 comparisons are cross-vendor. Same-vendor comparisons are excluded from this
+table: one of the two models wins by construction, so they say nothing about vendors.
 
-Exact two-sided binomial test against a 50/50 null: **p = 0.82**. An 11–9 split is what a
-fair coin produces routinely over twenty flips. This is not evidence that either vendor
-is better at security tasks, and an earlier version of this README presented it as though
-it were.
+| Vendor | Appeared in | Won | Win rate | 95% CI |
+|---|---:|---:|---:|---|
+| OpenAI | 26 | 10 | 38% | 22%–57% |
+| Google | 24 | 14 | 58% | 39%–76% |
+| Anthropic | 4 | 3 | 75% | 30%–95% |
+
+Chi-square across the three vendors, **each tested against half the comparisons it actually
+appeared in**: χ²(2) = 1.53, **p = 0.47**. Not distinguishable from chance.
+
+The conditioning matters, and getting it wrong here produced a false positive worth
+recording. Testing the same data against an *equal-share* null — every vendor expected to
+win a third — returns χ²(2) = 6.93, **p = 0.031**, which reads as "the vendors differ".
+It is an artefact: Anthropic took part in 4 comparisons while a third of 27 is 9, so the
+test penalised the vendor that was scheduled least — and that vendor has the *highest*
+win rate of the three. An equal-share null is only valid when every group appears equally
+often, and here they do not. Both `analysis/statistics.py` and the dashboard condition on
+participation.
+
+Anthropic's 4 appearances constrain almost nothing either way. Do not read 75% as a result.
 
 ![Bradley-Terry strengths with bootstrap intervals](visualizations/bradley_terry.png)
 
@@ -97,28 +129,45 @@ maximum likelihood, with bootstrap intervals over 2000 resamples. 1.0 is average
 
 | Model | Strength | 95% CI | Separated from parity? |
 |---|---:|---|---|
-| Gemini-2.5-Pro | 2.14 | 0.42–4.07 | no |
-| GPT-5.2-High | 2.00 | 0.33–4.20 | no |
-| GPT-5.2 | 1.22 | 0.08–3.98 | no |
-| Gemini-3.1-Pro-Preview | 1.09 | 0.20–3.20 | no |
-| GPT-4.1-Mini | 0.71 | 0.12–3.12 | no |
-| Gemini-2.5-Flash-Lite | 0.47 | 0.07–1.74 | no |
-| Gemini-3-Flash-Preview | 0.29 | 0.02–1.42 | no |
-| **GPT-4o** | **0.08** | **0.02–0.26** | **yes** |
+| Gemini-3.6-Flash | 2.40 | 0.91–4.35 | no |
+| Gemini-2.5-Flash | 1.98 | 0.91–3.70 | no |
+| Claude-Opus-5 | 1.74 | 0.23–4.70 | no |
+| Gemini-2.5-Pro | 1.21 | 0.22–3.45 | no |
+| GPT-5.2 | 0.95 | 0.06–4.68 | no |
+| Gemini-3.1-Pro-Preview | 0.88 | 0.16–3.03 | no |
+| GPT-5.2-High | 0.76 | 0.13–3.07 | no |
+| GPT-4.1-Mini | 0.49 | 0.07–1.54 | no |
+| Gemini-2.5-Flash-Lite | 0.32 | 0.04–1.57 | no |
+| Gemini-3-Flash-Preview | 0.22 | 0.01–1.32 | no |
+| **GPT-4o** | **0.06** | **0.01–0.22** | **yes** |
+
+The two models at the top of that table have **one appearance each**. Bradley-Terry with a
+prior will happily assign them a strength; it does not make the number informative.
 
 ### What this data actually supports
 
-**One finding, and it is not the one that was being reported.**
+**Still one finding, after twenty-eight comparisons across three vendors.**
 
-- **GPT-4o lost all six of its comparisons.** It is the only model whose interval excludes
-  parity, and therefore the only result here that survives contact with a significance test.
-- **Nothing separates the other seven.** Every one of their Bradley-Terry intervals overlaps
-  1.0. The leaderboard ordering is real in the sense that someone recorded those judgements,
-  and meaningless in the sense that it would likely reshuffle on a rerun.
-- **The vendor comparison is a coin flip** (p = 0.82).
+- **GPT-4o lost all six of its comparisons.** It remains the only model whose interval
+  excludes parity, and therefore the only result here that survives a significance test.
+- **Nothing separates the other ten.** Every one of their Bradley-Terry intervals overlaps
+  1.0. The ordering is real in the sense that these judgements were recorded, and
+  meaningless in the sense that it would likely reshuffle on a rerun.
+- **The vendor comparison is not significant** (p = 0.47), and the one arrangement of the
+  data that *does* return significance is an artefact of unequal scheduling — see above.
+- **Anthropic's entry does not change any of this.** Claude-Opus-5 went 3–1, which at four
+  appearances has a best achievable p of 0.125. Adding a vendor did not add a finding.
 - The task-specific framing — that different models suit different SOC tasks — remains a
-  reasonable *hypothesis*. Twenty comparisons cannot test it. It needs per-category sample
-  sizes, and each category here has one or two.
+  reasonable *hypothesis*. Twenty-eight comparisons cannot test it. Each category still has
+  one or two observations; `schedule.py --per-category 3` is what would change that.
+
+**A hallucination result worth naming, because it is behavioural rather than statistical.**
+Prompt 9 asks about "Operation Silent Horizon", a 2019 incident that does not exist. Across
+its two comparisons, **GPT-4.1-Mini invented a complete history for it** — Iranian
+attribution, Middle East targets, zero-days, an impact assessment. Claude-Opus-5 and
+Gemini-2.5-Flash both refused and offered verifiable 2019 incidents instead. That is n = 1
+per model and proves nothing about base rates, but the archived responses are in
+`responses/9/` and the failure is unambiguous when you read them.
 
 **GPT-4o was missing from this repository's results entirely.** `model_wins.csv` was
 maintained by hand and only listed models with at least one win, so the single model that
@@ -133,8 +182,38 @@ any comparison also appears in the output.
 python analysis/statistics.py            # the full report
 python analysis/statistics.py --write    # regenerate data/model_wins.csv, data/vendor_wins.csv
 python analysis/make_visualizations.py   # regenerate the charts
+python analysis/build_dashboard.py       # re-inject the data block into the dashboard
 python -m unittest discover -s tests -t .
 ```
+
+## Round two — a third vendor, and a design that could detect something
+
+Round one compared two vendors. Round two adds **Anthropic**, and more importantly
+replaces the ad-hoc pairing draw with a schedule computed before any response is read.
+
+The problem with round one was never the models — it was the design. Six of the eight
+models were drawn so few times that **no record they could have produced would have
+reached p ≤ 0.05.** At five appearances, a model that wins every single comparison
+still lands at p = 0.06. Those results were unfalsifiable before the first response
+was read, and the dashboard now says so per model.
+
+[`harness/`](harness/) fixes that, and the two other limitations round one documented:
+
+| Round one | Round two |
+|---|---|
+| Ad-hoc pairings; 12 of 28 possible pairs occurred | `schedule.py` — 33 comparisons, **every model appearing exactly 6 times**, 82% cross-vendor |
+| Raw model outputs never archived | `collect.py` — every response written to `responses/<prompt_id>/<model>.md` before judging |
+| Single judge who knew which model wrote which answer | `judge.py` — responses shown as **A/B with identities withheld**, order set by seed, plus a five-point rubric |
+| Vendor inferred from the model's name | `data/models.csv` — an explicit registry of model, vendor, family and tier |
+| One comparison per category, so no per-category claim was testable | `schedule.py --per-category 3` — 60 comparisons, exactly 3 per category, models still balanced at 9–10 appearances |
+| No second rater, so no agreement figure existed | `analysis/agreement.py` — Cohen's kappa between judges, a position-bias test, and rubric-vs-verdict consistency |
+
+Anthropic is registered in `data/models.csv` with status `planned` and renders on the
+dashboard as pending, with zero comparisons. **It is not reported as a result, because
+it does not have one yet.** The full runbook is in [`harness/README.md`](harness/README.md);
+`analysis/` and `dashboard/` are already vendor-agnostic, so no code changes are needed
+when the data arrives — with three vendors carrying data the vendor-level test switches
+from an exact binomial to a chi-square goodness of fit on its own.
 
 ## Repository Structure
 
@@ -142,14 +221,24 @@ python -m unittest discover -s tests -t .
 llm-cybersecurity-benchmark/
 ├── README.md
 ├── dashboard/
-│   └── index.html
+│   └── index.html              # self-contained; data block generated, never hand-edited
 ├── data/
-│   ├── prompt_results.csv
+│   ├── prompt_results.csv      # the source of truth — every other table derives from it
+│   ├── models.csv              # model -> vendor, family, tier, status
 │   ├── model_wins.csv
 │   └── vendor_wins.csv
 ├── analysis/
 │   ├── statistics.py           # Wilson intervals, binomial test, Bradley-Terry
+│   ├── agreement.py            # Cohen's kappa, position bias, rubric consistency
+│   ├── build_dashboard.py      # injects data/ into dashboard/index.html
 │   └── make_visualizations.py  # regenerates visualizations/ from source
+├── harness/                    # replaces the retired Handshake Versus workflow
+│   ├── schedule.py             # balanced pairing plan, computed before any judging
+│   ├── collect.py              # calls each vendor's API, archives every raw response
+│   ├── manual.py               # same archive, for pasted responses (no API key)
+│   ├── judge.py                # blind A/B judging with a five-point rubric
+│   └── pairings.csv            # the committed round-two schedule
+├── responses/                  # archived raw model outputs (created by collect.py)
 ├── tests/                      # regression tests on the reporting pipeline
 ├── copilot/
 │   ├── README.md
@@ -167,33 +256,59 @@ llm-cybersecurity-benchmark/
 ```
 
 
-## Interactive Dashboard Features
+## Interactive Dashboard
 
-The dashboard (`dashboard/index.html`) now includes:
+`dashboard/index.html` is a single self-contained file — no build step, no network calls,
+works from `file://`. **Every statistic on it is recomputed in the browser from the
+embedded source rows**, including the Bradley-Terry fit and its bootstrap intervals, so
+the page and `analysis/statistics.py` cannot report different numbers. The point
+estimates match the Python to two decimal places.
 
-- KPI cards for prompt count, vendor wins, model coverage, and top model ties
-- Dual scoreboards (wins by vendor + all models by win rate, labelled wins/appearances)
-- A standing caveat on the scoreboard stating the significance of what is plotted
-- Category chips, full-text search, and sortable prompt result rows
-- Expand/collapse rationale details per prompt
-- Model spotlight cards with appearances, win/loss, win rate and a 95% Wilson interval
-- Head-to-head matchup summaries showing repeated pair outcomes
+Vendors are colour-coded to their own brand — Google blue into the Gemini violet, OpenAI
+green, Anthropic clay — so a model's maker is legible on every chart, chip, filter and row.
 
-Open `dashboard/index.html` in a browser to explore the full interactive view.
+- **Six KPI cards**, including how many findings survive a significance test and the width
+  of the widest confidence interval
+- **Win rate forest plot** with 95% Wilson intervals and a marked parity line — replacing
+  a raw win-count bar chart that was not comparable across models drawn different numbers
+  of times
+- **Bradley-Terry forest plot** with seeded bootstrap intervals on a log scale
+- **Model table** with appearances, win rate, both intervals, and *strength of schedule* —
+  the mean Bradley-Terry strength of the opponents each model actually faced
+- **Design sensitivity table**: the smallest p-value each model *could* have produced given
+  how many times it was drawn, which is how you find out that six of eight were
+  unfalsifiable by construction
+- **Pairing matrix** showing which models never met, and a **category coverage strip**
+- **Prompt-level results** filterable by vendor and category, searchable, sortable, with
+  the full prompt text and judging rationale for every comparison
+- **Head-to-head cards** for every pairing that occurred
+- **Roadmap panel** generated from the registry — it reads the pending vendors out of
+  `data/models.csv` and states what each still needs
+- Light and dark themes, keyboard-accessible controls, responsive to mobile
+
+Open it directly, or serve the repo and visit `/dashboard/index.html`.
 
 ## Prompt Set
 
-The full prompt set is stored in `data/prompt_results.csv` (20 rows).
+The full prompt set is stored in `data/prompt_results.csv` (28 rows across 20 distinct
+prompts). Raw model responses for the round-2 comparisons are archived under
+`responses/<prompt_id>/<model>.md`, so those judgements can be independently re-scored.
 
 ## Limitations
 
 These are the reasons the results above are hedged as heavily as they are.
 
-- **n = 20 is too small to rank eight models.** Each appears three to seven times. The
-  confidence intervals in the results section are the honest width, not a formality.
-- **A single unblinded judge.** I scored every comparison myself, knowing which model was
-  which. There is no second rater and therefore no inter-rater agreement to report. Knowing
-  the model identity is a live route for bias, and nothing here controls for it.
+- **n = 28 is too small to rank eleven models.** Appearances range from one to eleven,
+  and seven of the eleven models could not have produced a significant result under any
+  outcome. The confidence intervals above are the honest width, not a formality.
+- **A single judge, unblinded in round 1.** I scored every comparison myself. In round 1 I
+  could see which model wrote which answer, which is a live route for bias that nothing
+  controlled for. Round 2 was scored through the blind A/B interface, so identity bias is
+  removed there — but there is still no second rater, and therefore no inter-rater agreement
+  to report in either round. `analysis/agreement.py` computes Cohen's kappa the moment a
+  second person scores the same pairings; until then it correctly reports that it cannot.
+  A position-bias check does run on round 2: 5 of 8 verdicts went to whichever response was
+  shown first, exact binomial p = 0.73, which at n = 8 has little power to detect anything.
 - **Unbalanced pairings.** Not a round robin. Strength of schedule varies: GPT-4o drew a
   Gemini opponent in all six of its comparisons, so its 0–6 is partly a statement about who
   it faced. It is the only significant result here and it still carries that caveat.
@@ -202,6 +317,10 @@ These are the reasons the results above are hedged as heavily as they are.
   That is the single biggest obstacle to anyone reproducing this, and the first thing to fix.
 - **Category-level claims are unsupported.** Twenty prompts across twenty categories is one
   observation each.
+
+Every one of these except the second rater and per-category coverage is addressed by the
+round-two harness. None of them are fixed retroactively — the twenty comparisons above
+carry all of the limitations above, and adding a third vendor does not repair them.
 
 ## Why this project matters
 

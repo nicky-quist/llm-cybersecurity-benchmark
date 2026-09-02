@@ -161,6 +161,130 @@ def vendor_split(rows):
     return counts
 
 
+def _gammaln(x):
+    c = [76.18009172947146, -86.50532032941677, 24.01409824083091,
+         -1.231739572450155, 0.1208650973866179e-2, -0.5395239384953e-5]
+    y, tmp = x, x + 5.5
+    tmp -= (x + 0.5) * math.log(tmp)
+    ser = 1.000000000190015
+    for j in range(6):
+        y += 1
+        ser += c[j] / y
+    return -tmp + math.log(2.5066282746310005 * ser / x)
+
+
+def _gamma_q(a, x):
+    """Regularised upper incomplete gamma — the chi-square survival function."""
+    if x <= 0:
+        return 1.0
+    if x < a + 1:                                  # series for P, then Q = 1 - P
+        ap, total, term = a, 1.0 / a, 1.0 / a
+        for _ in range(500):
+            ap += 1
+            term *= x / ap
+            total += term
+            if abs(term) < abs(total) * 1e-12:
+                break
+        return 1 - total * math.exp(-x + a * math.log(x) - _gammaln(a))
+    b, c, d = x + 1 - a, 1e300, 1.0 / (x + 1 - a)  # continued fraction for Q
+    h = d
+    for i in range(1, 500):
+        an = -i * (i - a)
+        b += 2
+        d = an * d + b
+        if abs(d) < 1e-300:
+            d = 1e-300
+        c = b + an / c
+        if abs(c) < 1e-300:
+            c = 1e-300
+        d = 1 / d
+        delta = d * c
+        h *= delta
+        if abs(delta - 1) < 1e-12:
+            break
+    return math.exp(-x + a * math.log(x) - _gammaln(a)) * h
+
+
+def build_vendor_lookup(rows, path=None):
+    """Model -> vendor, from data/models.csv.
+
+    Never inferred from the model's name: a prefix test mislabels every model
+    from a vendor it was not written for, which is how a third vendor's models
+    would silently be counted as OpenAI's.
+    """
+    registry = {}
+    models_path = path or os.path.join(DATA, "models.csv")
+    if os.path.exists(models_path):
+        with open(models_path, encoding="utf-8-sig") as f:
+            registry = {r["model"]: r["vendor"] for r in csv.DictReader(f)}
+
+    # winner_vendor in the results file is the fallback for any model the
+    # registry does not carry, so an unregistered model is still attributed
+    # rather than dropped.
+    for r in rows:
+        registry.setdefault(r["winner"], r.get("winner_vendor", "Unknown"))
+    return lambda model: registry.get(model, "Unknown")
+
+
+def vendor_participation(rows, vendor_of):
+    """Cross-vendor participations and wins per vendor.
+
+    Same-vendor comparisons are excluded: one of the two models wins by
+    construction, so they carry no information about which vendor is better.
+    """
+    participations, wins = collections.Counter(), collections.Counter()
+    cross = 0
+    for r in rows:
+        va, vb = vendor_of(r["model_a"]), vendor_of(r["model_b"])
+        if va == vb:
+            continue
+        cross += 1
+        participations[va] += 1
+        participations[vb] += 1
+        wins[vendor_of(r["winner"])] += 1
+    return participations, wins, cross
+
+
+def vendor_test(participations, wins):
+    """Test each vendor's wins against how often it actually appeared.
+
+    An equal-share null — every vendor expected to win 1/k of the comparisons —
+    is wrong the moment vendors appear a different number of times, and here they
+    do: Anthropic took part in 4 comparisons while a third of 27 is 9. Tested that
+    way the split came out "significant" (p = 0.03) purely because one vendor was
+    scheduled less, while the vendor being penalised had the *highest* win rate.
+    That is a statement about the schedule, not about the models.
+
+    Conditioning on participation fixes it: under a null of all models being
+    equal, a vendor is expected to win half the cross-vendor comparisons it
+    appears in. Those expectations sum to the number of comparisons, so the
+    chi-square is well formed.
+    """
+    vendors = sorted(participations, key=lambda v: -participations[v])
+    if len(vendors) < 2:
+        return {"kind": "none", "p": None,
+                "text": "Not enough vendors with cross-vendor data to test."}
+
+    if len(vendors) == 2:
+        top = vendors[0]
+        n = participations[top]
+        p = binomial_two_sided_p(wins[top], n)
+        return {"kind": "binomial", "p": p,
+                "text": f"Exact two-sided binomial test of {top} {wins[top]}-"
+                        f"{n - wins[top]} against a 50/50 null: p = {p:.3f}"}
+
+    stat, df = 0.0, len(vendors) - 1
+    for v in vendors:
+        expected = participations[v] / 2
+        if expected > 0:
+            stat += (wins[v] - expected) ** 2 / expected
+    p = _gamma_q(df / 2, stat / 2)
+    return {"kind": "chisq", "p": p, "stat": stat, "df": df,
+            "text": f"Chi-square across {len(vendors)} vendors, each tested against half "
+                    f"the comparisons it actually appeared in: chi2({df}) = {stat:.2f}, "
+                    f"p = {p:.3f}"}
+
+
 def write_derived_csvs(rows, stats):
     """Regenerate the derived tables from source.
 
@@ -207,26 +331,42 @@ def report(rows):
 
     widest = max((wilson_interval(s["wins"], s["appearances"]) for s in stats.values()),
                  key=lambda ci: ci[1] - ci[0])
+    apps = [s["appearances"] for s in stats.values()]
     lines.append(f"\nEvery interval is wide — the widest spans {widest[1] - widest[0]:.0%} "
-                 f"of the range. At 3 to 7 appearances per model, that is the honest\n"
-                 f"precision of this design, and the ordering above is not resolved by it.")
+                 f"of the range. At {min(apps)} to {max(apps)} appearances per model,\n"
+                 f"that is the honest precision of this design, and the ordering above is "
+                 f"not resolved by it.")
 
-    counts = vendor_split(rows)
-    total = sum(counts.values())
-    top, top_wins = counts.most_common(1)[0]
-    p = binomial_two_sided_p(top_wins, total)
-    lo, hi = wilson_interval(top_wins, total)
-    lines.append(f"\nVendor split")
+    unfalsifiable = sorted(m for m, s in stats.items()
+                           if binomial_two_sided_p(s["appearances"], s["appearances"]) > 0.05)
+    if unfalsifiable:
+        lines.append(f"\n{len(unfalsifiable)} of {len(stats)} models were drawn too few times "
+                     f"for ANY record to reach p <= 0.05:")
+        for m in unfalsifiable:
+            n = stats[m]["appearances"]
+            lines.append(f"  {m:<24} {n} appearance{'' if n == 1 else 's'}  "
+                         f"(best possible p = {binomial_two_sided_p(n, n):.3f})")
+        lines.append("That is a property of the schedule, fixed before any response was read.")
+
+    vendor_of = build_vendor_lookup(rows)
+    participations, vwins, cross = vendor_participation(rows, vendor_of)
+    test = vendor_test(participations, vwins)
+    lines.append(f"\nVendor split — {cross} of {len(rows)} comparisons are cross-vendor")
     lines.append("-" * 66)
-    for vendor, wins in counts.most_common():
-        lines.append(f"{vendor:<24} {wins:>3}/{total}  ({wins / total:.0%})")
-    lines.append(f"\nExact two-sided binomial test against a 50/50 null: p = {p:.3f}")
-    lines.append(f"{top} win rate {top_wins}/{total} = {top_wins / total:.0%}, "
-                 f"95% CI [{lo:.0%}, {hi:.0%}]")
-    verdict = ("indistinguishable from chance" if p > 0.05
-               else "distinguishable from chance at the 5% level")
-    lines.append(f"Verdict: {verdict}. A {top_wins}-{total - top_wins} split is what a "
-                 f"fair coin does routinely over {total} flips.")
+    lines.append(f"{'vendor':<16}{'appeared':>10}{'won':>6}{'rate':>8}   95% CI")
+    for vendor in sorted(participations, key=lambda v: -participations[v]):
+        n, w = participations[vendor], vwins[vendor]
+        lo, hi = wilson_interval(w, n)
+        lines.append(f"{vendor:<16}{n:>10}{w:>6}{w / n:>8.0%}   [{lo:.0%}, {hi:.0%}]")
+    lines.append(f"\n{test['text']}")
+    if test["p"] is not None:
+        verdict = ("indistinguishable from chance" if test["p"] > 0.05
+                   else "distinguishable from chance at the 5% level")
+        lines.append(f"Verdict: the split across vendors is {verdict}.")
+    thin = [v for v in participations if participations[v] < 10]
+    if thin:
+        lines.append(f"Note: {', '.join(sorted(thin))} appeared in fewer than 10 "
+                     f"comparisons; that win rate is barely constrained either way.")
 
     strengths = bradley_terry(rows)
     intervals = bootstrap_bradley_terry(rows)

@@ -1,759 +1,1481 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>LLM Cybersecurity Benchmark — SOC Task Evaluation</title>
-  <style>
-    :root {
-      --bg: #0f172a;
-      --surface: #111827;
-      --surface-2: #1f2937;
-      --text: #e5e7eb;
-      --muted: #9ca3af;
-      --google: #22c55e;
-      --openai: #60a5fa;
-      --accent: #38bdf8;
-      --border: #334155;
-      --shadow: rgba(0, 0, 0, 0.35);
-      --danger: #f87171;
-    }
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>LLM Cybersecurity Benchmark — SOC Task Evaluation</title>
+<meta name="description" content="Pairwise evaluation of frontier LLMs on SOC and security-engineering prompts, reported with the uncertainty a small sample actually carries." />
+<style>
+  /* ---------------------------------------------------------------
+     Vendor brand palette. Each vendor gets its own hue so a model's
+     colour identifies its maker on every chart, chip and row.
+       Google / Gemini  — Google blue, into the Gemini blue-violet
+       OpenAI / GPT     — OpenAI green
+       Anthropic/Claude — Claude clay
+     Adding a vendor = add its three custom properties plus a row in
+     data/models.csv. Nothing else in this file is vendor-specific.
+     --------------------------------------------------------------- */
+  :root {
+    color-scheme: dark;
 
-    * { box-sizing: border-box; }
+    --v-Google:        #4285F4;
+    --v-Google-2:      #9B72CB;
+    --v-Google-soft:   rgba(66, 133, 244, 0.14);
 
-    body {
-      margin: 0;
-      font-family: Inter, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
-      background: linear-gradient(180deg, #0b1220 0%, var(--bg) 100%);
-      color: var(--text);
-      min-height: 100vh;
-    }
+    --v-OpenAI:        #19C79B;
+    --v-OpenAI-2:      #0E8C6D;
+    --v-OpenAI-soft:   rgba(25, 199, 155, 0.13);
 
-    .container {
-      max-width: 1280px;
-      margin: 0 auto;
-      padding: 32px 20px 48px;
-    }
+    --v-Anthropic:     #D97757;
+    --v-Anthropic-2:   #E8A87C;
+    --v-Anthropic-soft:rgba(217, 119, 87, 0.13);
 
-    h1 {
-      margin: 0 0 16px;
-      font-size: clamp(1.4rem, 3vw, 2rem);
-      letter-spacing: 0.2px;
-    }
+    --bg:        #070b14;
+    --bg-2:      #0a1120;
+    --panel:     #0e1626;
+    --panel-2:   #121d33;
+    --raised:    #172542;
+    --line:      #223052;
+    --line-soft: #18243e;
+    --text:      #eaf0fb;
+    --muted:     #94a4c2;
+    --faint:     #66789a;
+    --accent:    #59b6ff;
+    --warn:      #f5b544;
+    --sig:       #fb7185;
+    --grid:      #1a2740;
+    --shadow:    0 14px 40px rgba(0, 0, 0, 0.5);
+    --radius:    16px;
+  }
 
-    .hero-subtitle {
-      margin: 0 0 24px;
-      color: #94a3b8;
-      font-size: 0.95rem;
-      line-height: 1.5;
-      max-width: 900px;
-    }
+  html[data-theme="light"] {
+    color-scheme: light;
+    --v-Google:        #1A73E8;
+    --v-Google-2:      #8430CE;
+    --v-Google-soft:   rgba(26, 115, 232, 0.10);
+    --v-OpenAI:        #0E8C6D;
+    --v-OpenAI-2:      #0A6B53;
+    --v-OpenAI-soft:   rgba(14, 140, 109, 0.10);
+    --v-Anthropic:     #C2552F;
+    --v-Anthropic-2:   #D97757;
+    --v-Anthropic-soft:rgba(194, 85, 47, 0.10);
 
-    .cards {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-      gap: 12px;
-      margin-bottom: 18px;
-    }
+    --bg:        #f5f7fc;
+    --bg-2:      #eef2f9;
+    --panel:     #ffffff;
+    --panel-2:   #f5f8fd;
+    --raised:    #e9eef7;
+    --line:      #d6deec;
+    --line-soft: #e6ebf4;
+    --text:      #0d1728;
+    --muted:     #51607a;
+    --faint:     #78879f;
+    --accent:    #0b6bcb;
+    --warn:      #a8620a;
+    --sig:       #be123c;
+    --grid:      #dfe5f0;
+    --shadow:    0 10px 28px rgba(15, 23, 42, 0.07);
+  }
 
-    .card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 14px;
-      box-shadow: 0 8px 24px var(--shadow);
-    }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; scroll-padding-top: 78px; }
 
-    .card h2 {
-      margin: 0;
-      font-size: 0.78rem;
-      color: var(--muted);
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.42px;
-    }
+  body {
+    margin: 0;
+    font-family: "Inter", -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    font-variant-numeric: tabular-nums;
+  }
 
-    .card .count {
-      display: block;
-      margin-top: 6px;
-      font-size: 1.72rem;
-      font-weight: 700;
-    }
+  body::before {
+    /* the three vendor hues, bled into the page background */
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    background:
+      radial-gradient(720px 380px at 12% -8%, var(--v-Google-soft), transparent 70%),
+      radial-gradient(680px 360px at 88% -4%, var(--v-OpenAI-soft), transparent 70%),
+      radial-gradient(560px 320px at 50% 8%, var(--v-Anthropic-soft), transparent 72%);
+  }
 
-    .card.google .count { color: var(--google); }
-    .card.openai .count { color: var(--openai); }
-    .card.top-model .count {
-      color: var(--accent);
-      font-size: 1.1rem;
-      line-height: 1.5;
-      word-break: break-word;
-    }
+  .wrap { max-width: 1200px; margin: 0 auto; padding: 0 22px; position: relative; z-index: 1; }
+  a { color: var(--accent); }
 
-    .card .substat {
-      display: block;
-      color: var(--muted);
-      margin-top: 2px;
-      font-size: 0.8rem;
-    }
+  /* ------------------------------ top bar ------------------------------ */
 
-    .panel {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      box-shadow: 0 8px 24px var(--shadow);
-      margin-bottom: 18px;
-      overflow: hidden;
-    }
+  .topbar {
+    position: sticky; top: 0; z-index: 30;
+    background: color-mix(in srgb, var(--bg) 86%, transparent);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--line-soft);
+  }
+  .topbar .wrap { display: flex; align-items: center; gap: 16px; height: 58px; }
+  .brand { font-weight: 700; font-size: 0.92rem; white-space: nowrap; letter-spacing: -0.1px; }
+  .brand em { font-style: normal; color: var(--faint); font-weight: 500; }
+  .navlinks { display: flex; gap: 2px; margin-left: auto; flex-wrap: wrap; }
+  .navlinks a {
+    color: var(--muted); text-decoration: none; font-size: 0.82rem;
+    padding: 6px 10px; border-radius: 8px;
+  }
+  .navlinks a:hover { color: var(--text); background: var(--panel-2); }
+  .theme-toggle {
+    border: 1px solid var(--line); background: var(--panel); color: var(--muted);
+    border-radius: 999px; width: 34px; height: 34px; cursor: pointer;
+    font-size: 0.9rem; line-height: 1; flex: none;
+  }
+  .theme-toggle:hover { color: var(--text); border-color: var(--faint); }
 
-    .panel h3 {
-      margin: 0;
-      padding: 14px 16px;
-      background: var(--surface-2);
-      border-bottom: 1px solid var(--border);
-      font-size: 1rem;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 10px;
-    }
+  /* ------------------------------- hero -------------------------------- */
 
-    .chart-wrap {
-      padding: 14px;
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-    }
+  .hero { padding: 46px 0 8px; }
+  .eyebrow {
+    display: inline-flex; align-items: center; gap: 9px;
+    font-size: 0.71rem; font-weight: 700; letter-spacing: 1.2px;
+    text-transform: uppercase; color: var(--muted); margin: 0 0 16px;
+    border: 1px solid var(--line); border-radius: 999px; padding: 6px 13px 6px 9px;
+    background: var(--panel);
+  }
+  .eyebrow { gap: 7px; flex-wrap: wrap; }
+  .eyebrow .dots { display: inline-flex; gap: 4px; flex: none; }
+  .eyebrow .dots i { width: 8px; height: 8px; border-radius: 50%; display: block; }
+  .nowrap { white-space: nowrap; }
 
-    .chart-card {
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      background: #0f1a2f;
-      padding: 12px;
-    }
+  h1 {
+    margin: 0 0 16px; font-size: clamp(1.75rem, 4vw, 2.9rem);
+    line-height: 1.1; letter-spacing: -1px; font-weight: 700; max-width: 20ch;
+  }
+  h1 .grad {
+    background: linear-gradient(100deg, var(--v-Google) 0%, var(--v-Google-2) 34%, var(--v-Anthropic) 66%, var(--v-OpenAI) 100%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .lede { margin: 0; max-width: 72ch; color: var(--muted); font-size: 1.03rem; line-height: 1.7; }
+  .lede strong { color: var(--text); font-weight: 600; }
 
-    .chart-card h4 {
-      margin: 0 0 8px;
-      font-size: 0.9rem;
-      color: #cbd5e1;
-    }
+  /* ------------------------------- KPIs -------------------------------- */
 
-    .chart-axis-label {
-      fill: var(--muted);
-      font-size: 12px;
-    }
+  .kpis {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(184px, 1fr));
+    gap: 12px; margin: 30px 0 24px;
+  }
+  .kpi {
+    background: var(--panel); border: 1px solid var(--line);
+    border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow);
+    position: relative; overflow: hidden;
+  }
+  .kpi::after {
+    content: ""; position: absolute; left: 0; right: 0; top: 0; height: 3px;
+    background: var(--kpi-accent, var(--line));
+  }
+  .kpi h2 {
+    margin: 0; font-size: 0.69rem; font-weight: 700; letter-spacing: 0.8px;
+    text-transform: uppercase; color: var(--faint);
+  }
+  .kpi .val {
+    display: block; margin-top: 9px; font-size: 1.9rem; font-weight: 700;
+    line-height: 1.05; letter-spacing: -1px;
+  }
+  .kpi .val small { font-size: 0.55em; font-weight: 600; letter-spacing: 0; color: var(--muted); }
+  .kpi .sub { display: block; margin-top: 7px; font-size: 0.775rem; color: var(--muted); line-height: 1.45; }
 
-    .chart-value {
-      fill: var(--text);
-      font-size: 12px;
-      font-weight: 600;
-      text-anchor: middle;
-    }
+  /* ------------------------------ callout ------------------------------ */
 
-    .controls {
-      display: grid;
-      gap: 10px;
-      padding: 14px 16px;
-      border-bottom: 1px solid var(--border);
-      background: #0b1324;
-    }
+  .callout {
+    border: 1px solid var(--line); border-left: 4px solid var(--warn);
+    background: color-mix(in srgb, var(--warn) 7%, var(--panel));
+    border-radius: 12px; padding: 17px 20px; line-height: 1.7;
+    font-size: 0.91rem; margin: 0 0 26px; color: var(--muted);
+  }
+  .callout strong { color: var(--text); }
+  .callout code { background: var(--raised); padding: 1px 6px; border-radius: 5px; font-size: 0.86em; }
 
-    .filters {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-    }
+  /* ------------------------------ panels ------------------------------- */
 
-    .filters-label {
-      color: var(--muted);
-      font-size: 0.82rem;
-      margin: 0 0 4px;
-    }
+  .panel {
+    background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+    box-shadow: var(--shadow); margin-bottom: 22px; overflow: hidden;
+  }
+  .panel > header {
+    padding: 15px 19px; background: var(--panel-2); border-bottom: 1px solid var(--line);
+    display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+  }
+  .panel > header h3 { margin: 0; font-size: 1rem; letter-spacing: -0.2px; }
+  .panel > header .hint { color: var(--faint); font-size: 0.79rem; font-weight: 400; }
+  .panel-body { padding: 19px; }
+  .panel-note { margin: 0; padding: 0 19px 17px; color: var(--faint); font-size: 0.82rem; line-height: 1.65; }
+  .panel-note strong { color: var(--muted); }
 
-    .toolbar {
-      display: grid;
-      grid-template-columns: 1fr 180px;
-      gap: 8px;
-    }
+  .split { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  .split-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
+  /* Grid items default to min-width:auto, so a card holding a wide table refuses
+     to shrink and pushes its whole panel past the viewport instead of letting
+     the table scroll inside its own overflow container. */
+  .split > *, .split-3 > * { min-width: 0; }
 
-    .input,
-    .select,
-    .filter-btn,
-    .rationale-toggle {
-      border: 1px solid var(--border);
-      background: #0f1a2f;
-      color: var(--text);
-      border-radius: 8px;
-      font-size: 0.84rem;
-    }
+  .chart-card {
+    border: 1px solid var(--line-soft); border-radius: 12px;
+    background: var(--bg-2); padding: 15px 15px 11px;
+  }
+  .chart-card h4 { margin: 0 0 3px; font-size: 0.87rem; letter-spacing: -0.1px; }
+  .chart-card p.cap { margin: 0 0 12px; color: var(--faint); font-size: 0.755rem; line-height: 1.55; }
 
-    .input,
-    .select {
-      padding: 8px 10px;
-      width: 100%;
-    }
+  svg { display: block; width: 100%; height: auto; overflow: visible; }
+  .ax-label { fill: var(--faint); font-size: 10.5px; }
+  .ax-model { fill: var(--text); font-size: 11.5px; font-weight: 500; }
+  .val-label { fill: var(--text); font-size: 10.5px; font-weight: 600; }
+  .val-label.dim { fill: var(--faint); font-weight: 500; }
+  .grid-line { stroke: var(--grid); stroke-width: 1; }
+  .parity-line { stroke: var(--warn); stroke-width: 1.5; stroke-dasharray: 5 4; opacity: 0.9; }
 
-    .filter-btn {
-      padding: 7px 10px;
-      border-radius: 999px;
-      cursor: pointer;
-      transition: all 120ms ease;
-    }
+  .legend { display: flex; gap: 15px; flex-wrap: wrap; color: var(--muted); font-size: 0.755rem; padding-top: 10px; }
+  .legend i { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; vertical-align: 0; }
+  .legend .dash {
+    display: inline-block; width: 14px; border-top: 2px dashed var(--warn);
+    margin-right: 6px; vertical-align: 3px;
+  }
 
-    .filter-btn:hover,
-    .rationale-toggle:hover { border-color: #64748b; }
+  /* ---------------------------- vendor cards ---------------------------- */
 
-    .filter-btn.active {
-      background: #1d4ed8;
-      border-color: #1d4ed8;
-      color: #fff;
-    }
+  .vendor-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px; }
+  .vendor-card {
+    border: 1px solid var(--line); border-radius: 13px; padding: 16px;
+    background: var(--bg-2); position: relative; overflow: hidden;
+  }
+  .vendor-card::before {
+    content: ""; position: absolute; inset: 0 0 auto 0; height: 4px;
+    background: linear-gradient(90deg, var(--vc), var(--vc2));
+  }
+  .vendor-card.pending { border-style: dashed; opacity: 0.85; }
+  .vendor-card .vname { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 0.95rem; }
+  .vendor-card .vname i { width: 10px; height: 10px; border-radius: 50%; background: var(--vc); flex: none; }
+  .vendor-card .vbig { font-size: 2rem; font-weight: 700; letter-spacing: -1px; margin: 10px 0 2px; color: var(--vc); }
+  .vendor-card .vsub { color: var(--muted); font-size: 0.79rem; line-height: 1.5; }
+  .vendor-card .vtrack { height: 7px; border-radius: 4px; background: var(--raised); overflow: hidden; margin: 12px 0 8px; }
+  .vendor-card .vfill { height: 100%; border-radius: 4px; background: linear-gradient(90deg, var(--vc), var(--vc2)); }
+  .vendor-card .vmodels { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 5px; }
 
-    .summary-note {
-      color: var(--muted);
-      font-size: 0.82rem;
-      padding: 0 16px 12px;
-    }
+  /* ------------------------------ tables -------------------------------- */
 
-    table {
-      width: 100%;
-      border-collapse: collapse;
-    }
+  table { width: 100%; border-collapse: collapse; }
+  th, td {
+    text-align: left; padding: 11px 15px; border-bottom: 1px solid var(--line-soft);
+    vertical-align: top; font-size: 0.875rem; line-height: 1.5;
+  }
+  th {
+    color: var(--faint); font-weight: 700; font-size: 0.71rem; letter-spacing: 0.7px;
+    text-transform: uppercase; background: var(--panel-2);
+    position: sticky; top: 0; z-index: 1; white-space: nowrap;
+  }
+  td.num, th.num { text-align: right; }
+  tbody tr:hover { background: var(--panel-2); }
+  tbody tr.is-sig { background: color-mix(in srgb, var(--sig) 8%, transparent); }
+  tbody tr.is-sig:hover { background: color-mix(in srgb, var(--sig) 13%, transparent); }
+  .table-scroll { max-height: 620px; overflow: auto; }
+  .table-flush { overflow-x: auto; }
 
-    th, td {
-      text-align: left;
-      padding: 12px 14px;
-      border-bottom: 1px solid var(--border);
-      vertical-align: top;
-      font-size: 0.9rem;
-    }
+  .chip {
+    display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px;
+    border-radius: 999px; font-size: 0.755rem; font-weight: 600; white-space: nowrap;
+    border: 1px solid color-mix(in srgb, var(--vc) 42%, transparent);
+    background: color-mix(in srgb, var(--vc) 12%, transparent);
+    color: var(--vc);
+  }
+  .chip i { width: 7px; height: 7px; border-radius: 50%; background: var(--vc); flex: none; }
+  .chip.flat { border-color: var(--line); background: transparent; color: var(--faint); }
+  .chip.sig { --vc: var(--sig); }
+  .chip.tier { border-color: var(--line); background: var(--raised); color: var(--muted); font-weight: 500; }
 
-    th {
-      color: var(--muted);
-      font-weight: 600;
-      background: #0d1628;
-      position: sticky;
-      top: 0;
-      z-index: 1;
-    }
+  /* A chip is for a short label. The sensitivity verdicts are full sentences,
+     and putting those in a nowrap chip forced the whole table wider than its
+     card, cutting the last column off at anything under ~1100px. */
+  .verdict { display: block; font-size: 0.82rem; line-height: 1.55; color: var(--muted); }
+  .verdict.no { color: var(--sig); }
+  .verdict::before { content: "● "; font-size: 0.7em; vertical-align: 1px; }
+  td.model-name { white-space: nowrap; }
 
-    tbody tr.google { background: rgba(22, 163, 74, 0.16); }
-    tbody tr.openai { background: rgba(37, 99, 235, 0.17); }
-    tbody tr:hover { filter: brightness(1.08); }
+  .mini-bar { height: 6px; background: var(--raised); border-radius: 3px; overflow: hidden; margin-top: 7px; min-width: 88px; }
+  .mini-bar > span { display: block; height: 100%; border-radius: 3px; background: var(--vc); }
 
-    .table-scroll {
-      max-height: 520px;
-      overflow: auto;
-    }
+  .matchup { color: var(--muted); font-size: 0.83rem; line-height: 1.6; }
+  .matchup b { color: var(--text); font-weight: 600; }
+  .matchup .beat { color: var(--faint); }
+  .matchup s { color: var(--faint); opacity: 0.75; }
 
-    .rationale-toggle {
-      padding: 6px 10px;
-      cursor: pointer;
-      margin-bottom: 8px;
-    }
+  /* ----------------------------- controls ------------------------------- */
 
-    .rationale-preview,
-    .rationale-full {
-      margin: 0;
-      line-height: 1.45;
-    }
+  .controls { display: grid; gap: 13px; padding: 15px 19px; border-bottom: 1px solid var(--line-soft); background: var(--bg-2); }
+  .filters { display: flex; flex-wrap: wrap; gap: 6px; }
+  .filters-label {
+    color: var(--faint); font-size: 0.7rem; text-transform: uppercase;
+    letter-spacing: 0.8px; margin: 0 0 9px; font-weight: 700;
+  }
+  .toolbar { display: grid; grid-template-columns: 1fr 220px; gap: 8px; }
+  .input, .select, .filter-btn, .btn {
+    border: 1px solid var(--line); background: var(--panel); color: var(--text);
+    border-radius: 9px; font-size: 0.84rem; font-family: inherit;
+  }
+  .input, .select { padding: 9px 12px; width: 100%; }
+  .input::placeholder { color: var(--faint); }
+  .filter-btn {
+    padding: 6px 12px; border-radius: 999px; cursor: pointer; color: var(--muted);
+    transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
+  }
+  .filter-btn:hover { color: var(--text); border-color: var(--faint); }
+  .filter-btn.active { background: var(--text); border-color: var(--text); color: var(--bg); font-weight: 600; }
+  .filter-btn.vendor.active { background: var(--vc); border-color: var(--vc); color: #fff; }
+  .btn { padding: 6px 12px; cursor: pointer; color: var(--muted); font-size: 0.78rem; }
+  .btn:hover { color: var(--text); border-color: var(--faint); }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
-    .rationale-preview { color: #cbd5e1; }
-    .rationale-full {
-      color: var(--text);
-      display: none;
-    }
+  .summary-note { margin: 0; padding: 13px 19px 0; color: var(--faint); font-size: 0.81rem; }
+  .empty { padding: 30px; text-align: center; color: var(--muted); }
 
-    .rationale-full.show { display: block; }
+  details.disc summary {
+    cursor: pointer; color: var(--muted); font-size: 0.79rem; list-style: none; margin-top: 8px;
+  }
+  details.disc summary::-webkit-details-marker { display: none; }
+  details.disc summary::before { content: "▸ "; color: var(--faint); }
+  details.disc[open] summary::before { content: "▾ "; }
+  details.disc .body { margin: 9px 0 0; color: var(--muted); line-height: 1.65; font-size: 0.85rem; }
+  details.disc .body .q {
+    display: block; margin-bottom: 8px; padding: 9px 11px; border-left: 2px solid var(--line);
+    background: var(--bg-2); border-radius: 0 7px 7px 0; color: var(--faint); font-size: 0.82rem;
+  }
 
-    .spotlight-grid {
-      display: grid;
-      gap: 12px;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-      padding: 14px 16px 16px;
-    }
+  /* ------------------------------ matrix -------------------------------- */
 
-    .spotlight-card {
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      background: #0f1a2f;
-      padding: 12px;
-    }
+  .matrix-scroll { overflow-x: auto; padding-bottom: 4px; }
+  table.matrix { border-collapse: separate; border-spacing: 4px; width: auto; min-width: 100%; }
+  table.matrix th, table.matrix td { border: 0; padding: 0; font-size: 0.75rem; text-align: center; white-space: nowrap; }
+  table.matrix th.rowhead {
+    text-align: right; padding-right: 11px; color: var(--text); font-weight: 500;
+    text-transform: none; letter-spacing: 0; font-size: 0.78rem; background: transparent; position: static;
+  }
+  table.matrix th.colhead {
+    color: var(--muted); font-weight: 500; text-transform: none; letter-spacing: 0;
+    font-size: 0.68rem; background: transparent; position: static; padding-bottom: 7px;
+  }
+  table.matrix td .cell {
+    display: grid; place-items: center; height: 32px; min-width: 38px; border-radius: 7px;
+    background: var(--raised); color: var(--faint);
+  }
+  table.matrix td .cell.self { background: transparent; color: var(--line); }
+  table.matrix td .cell.hit { color: #fff; font-weight: 700; }
+  html[data-theme="light"] table.matrix td .cell.hit { color: #fff; }
 
-    .spotlight-card h4 {
-      margin: 0 0 8px;
-      font-size: 0.95rem;
-      word-break: break-word;
-    }
+  /* ---------------------------- coverage strip -------------------------- */
 
-    .spotlight-stat {
-      display: flex;
-      justify-content: space-between;
-      color: #cbd5e1;
-      font-size: 0.85rem;
-      margin: 2px 0;
-    }
+  .cov { display: flex; flex-wrap: wrap; gap: 4px; }
+  .cov span {
+    display: block; height: 26px; flex: 1 1 34px; border-radius: 5px;
+    background: color-mix(in srgb, var(--accent) 28%, var(--panel));
+  }
 
-    .wins {
-      color: var(--google);
-      font-weight: 600;
-    }
+  .prose code {
+    background: var(--raised); border-radius: 6px; padding: 1px 6px; font-size: 0.85em;
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  }
 
-    .losses {
-      color: var(--danger);
-      font-weight: 600;
-    }
+  .prose { line-height: 1.75; font-size: 0.9rem; color: var(--muted); }
+  .prose h4 { color: var(--text); margin: 22px 0 8px; font-size: 0.9rem; }
+  .prose h4:first-child { margin-top: 0; }
+  .prose ul { margin: 0; padding-left: 20px; }
+  .prose li { margin-bottom: 9px; }
+  .prose strong { color: var(--text); }
 
-    .matchups {
-      display: grid;
-      gap: 10px;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      padding: 14px 16px 16px;
-    }
+  footer.page {
+    margin: 8px 0 44px; padding: 22px; border: 1px solid var(--line);
+    border-radius: var(--radius); background: var(--panel); color: var(--muted);
+    text-align: center; font-size: 0.85rem; line-height: 1.75;
+  }
+  footer.page strong { color: var(--text); }
 
-    .matchup-card {
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      background: #0f1a2f;
-      padding: 12px;
-      display: grid;
-      gap: 4px;
-    }
-
-    .matchup-title {
-      font-weight: 600;
-      font-size: 0.9rem;
-    }
-
-    .muted { color: var(--muted); }
-
-    .empty-state {
-      padding: 20px;
-      color: #cbd5e1;
-      text-align: center;
-    }
-
-    .page-footer {
-      margin-top: 24px;
-      padding: 14px 16px;
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      background: linear-gradient(180deg, #0d1628 0%, #0b1220 100%);
-      color: #93a6c6;
-      text-align: center;
-      font-size: 0.9rem;
-      letter-spacing: 0.15px;
-    }
-
-    .page-footer strong {
-      color: #dbeafe;
-      font-weight: 600;
-    }
-
-    @media (max-width: 860px) {
-      .chart-wrap { grid-template-columns: 1fr; }
-      .toolbar { grid-template-columns: 1fr; }
-    }
-
-    @media (max-width: 760px) {
-      th, td { font-size: 0.84rem; }
-    }
-  </style>
+  @media (max-width: 900px) {
+    .split { grid-template-columns: 1fr; }
+    .toolbar { grid-template-columns: 1fr; }
+    .navlinks { display: none; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    * { transition: none !important; }
+  }
+</style>
 </head>
 <body>
-  <div class="container">
-    <h1>LLM Cybersecurity Benchmark — SOC Task Evaluation</h1>
-    <p class="hero-subtitle">
-      Side-by-side SOC prompt benchmarking across Google and OpenAI models, with category filtering,
-      quick search, sortable results, and matchup-level insights.
-    </p>
 
-    <section class="cards">
-      <article class="card">
-        <h2>Total Prompts</h2>
-        <span class="count" id="totalPrompts">0</span>
-      </article>
-      <article class="card google">
-        <h2>Google Wins</h2>
-        <span class="count" id="googleCount">0</span>
-      </article>
-      <article class="card openai">
-        <h2>OpenAI Wins</h2>
-        <span class="count" id="openaiCount">0</span>
-      </article>
-      <article class="card">
-        <h2>Models Compared</h2>
-        <span class="count" id="modelsCompared">0</span>
-      </article>
-      <article class="card top-model">
-        <h2>Top Model(s)</h2>
-        <span class="count" id="topModel">—</span>
-        <span class="substat" id="topModelWins"></span>
-      </article>
-    </section>
-
-    <section class="panel">
-      <h3>Scoreboard</h3>
-      <div style="border-left:4px solid #f59e0b;background:rgba(245,158,11,0.08);padding:14px 18px;margin:0 0 18px;border-radius:6px;line-height:1.6">
-        <strong>Read these charts with the sample size in mind.</strong>
-        Twenty comparisons across eight models means each model appears 3&ndash;7 times.
-        The vendor split (Google 11, OpenAI 9) has an exact two-sided binomial
-        <em>p</em> = 0.82 against a 50/50 null &mdash; a gap a fair coin produces routinely.
-        Fitting a Bradley&ndash;Terry model, <strong>only GPT-4o&rsquo;s interval excludes parity</strong>;
-        every other model overlaps it. The one finding this data supports is that GPT-4o
-        lost all six of its comparisons. Nothing here ranks the rest.
-        <br><span style="opacity:0.75">Run <code>python analysis/statistics.py</code> for the full report.</span>
-      </div>
-      <div class="chart-wrap">
-        <div class="chart-card">
-          <h4>Wins by Vendor <span style="font-weight:400;opacity:0.7">(p = 0.82, not significant)</span></h4>
-          <svg id="vendorChart" viewBox="0 0 700 260" width="100%" aria-label="Bar chart of wins by vendor" role="img"></svg>
-        </div>
-        <div class="chart-card">
-          <h4>Wins by Model <span style="font-weight:400;opacity:0.7">(wins / appearances)</span></h4>
-          <svg id="modelChart" viewBox="0 0 700 300" width="100%" aria-label="Bar chart of models by wins, labelled with appearances" role="img"></svg>
-        </div>
-      </div>
-    </section>
-
-    <section class="panel">
-      <h3>Prompt-Level Results <span class="muted" id="resultCount"></span></h3>
-      <div class="controls">
-        <div>
-          <p class="filters-label">Category filters</p>
-          <div class="filters" id="filters"></div>
-        </div>
-        <div class="toolbar">
-          <input id="searchInput" class="input" type="search" placeholder="Search by category, winner, loser, or prompt text..." aria-label="Search prompt results" />
-          <select id="sortSelect" class="select" aria-label="Sort prompt results">
-            <option value="prompt_asc">Prompt # (ascending)</option>
-            <option value="prompt_desc">Prompt # (descending)</option>
-            <option value="winner_asc">Winner (A → Z)</option>
-            <option value="winner_desc">Winner (Z → A)</option>
-            <option value="vendor_asc">Vendor (A → Z)</option>
-            <option value="vendor_desc">Vendor (Z → A)</option>
-            <option value="category_asc">Category (A → Z)</option>
-            <option value="category_desc">Category (Z → A)</option>
-          </select>
-        </div>
-      </div>
-      <p class="summary-note" id="categorySummary">Showing all categories.</p>
-      <div class="table-scroll">
-        <table>
-          <thead>
-            <tr>
-              <th>Prompt #</th>
-              <th>Category</th>
-              <th>Winner</th>
-              <th>Vendor</th>
-              <th>Rationale</th>
-            </tr>
-          </thead>
-          <tbody id="resultsBody"></tbody>
-        </table>
-      </div>
-    </section>
-
-    <section class="panel">
-      <h3>Model Spotlight</h3>
-      <div class="spotlight-grid" id="spotlightGrid"></div>
-    </section>
-
-    <section class="panel">
-      <h3>Head-to-Head Matchup Highlights</h3>
-      <div class="matchups" id="matchupGrid"></div>
-    </section>
-
-    <footer class="page-footer">
-      <strong>Built by Nicholas Quist</strong> · github.com/nicky-quist · Submitted to the Codex Creator Challenge 2026
-    </footer>
+<div class="topbar">
+  <div class="wrap">
+    <div class="brand">LLM<em>×</em>SOC Benchmark</div>
+    <nav class="navlinks">
+      <a href="#vendors">Vendors</a>
+      <a href="#models">Models</a>
+      <a href="#power">Design</a>
+      <a href="#results">Results</a>
+      <a href="#h2h">Head-to-head</a>
+      <a href="#method">Method</a>
+    </nav>
+    <button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle colour theme" title="Toggle light / dark">◐</button>
   </div>
+</div>
 
-  <script>
-    const promptResults = [
-      {"prompt_id": 1, "category": "Cybersecurity Knowledge", "prompt_text": "Explain the MITRE ATT&CK technique T1059 (Command and Scripting Interpreter). Include how attackers use it and one real-world example of an attack that used it.", "model_a": "Gemini-3-Flash-Preview", "model_b": "GPT-5.2", "winner": "Gemini-3-Flash-Preview", "winner_vendor": "Google", "loser": "GPT-5.2", "rationale": "More complete T1059 explanation with a stronger real-world example and clearer defensive context."},
-      {"prompt_id": 2, "category": "Soc Detection", "prompt_text": "From a SOC analyst perspective, what detection methods could identify malicious use of T1059 (Command and Scripting Interpreter)? Include specific Windows event logs, telemetry sources, or security monitoring techniques that could help detect this activity.", "model_a": "Gemini-2.5-Flash-Lite", "model_b": "GPT-4.1-Mini", "winner": "Gemini-2.5-Flash-Lite", "winner_vendor": "Google", "loser": "GPT-4.1-Mini", "rationale": "Provided deeper SOC detection coverage, including specific hunting ideas and more operationally useful telemetry guidance."},
-      {"prompt_id": 3, "category": "Incident Investigation", "prompt_text": "A SOC analyst sees the following sequence of events: 1. A user opens a Microsoft Word document from email. 2. Word spawns powershell.exe. 3. PowerShell runs a command with the flag -EncodedCommand. 4. Shortly after, the system connects to an external IP address. Explain what might be happening and what steps the SOC analyst should take to investigate.", "model_a": "GPT-4o", "model_b": "Gemini-3.1-Pro-Preview", "winner": "Gemini-3.1-Pro-Preview", "winner_vendor": "Google", "loser": "GPT-4o", "rationale": "Better attack-chain narrative and a more realistic SOC workflow for containment, decoding, scoping, and remediation."},
-      {"prompt_id": 4, "category": "Detection Engineering", "prompt_text": "Create a Splunk query that could detect suspicious PowerShell activity related to MITRE ATT&CK technique T1059. Explain how the query works and what indicators it is looking for.", "model_a": "GPT-4.1-Mini", "model_b": "Gemini-2.5-Pro", "winner": "Gemini-2.5-Pro", "winner_vendor": "Google", "loser": "GPT-4.1-Mini", "rationale": "Stronger detection logic and parent-child process context; better explanation of why the indicators matter."},
-      {"prompt_id": 5, "category": "Python Coding", "prompt_text": "Write a Python script that analyzes a web server log file and detects IP addresses that made more than 20 failed login attempts within a 10 minute period. Explain how the script works.", "model_a": "GPT-5.2", "model_b": "Gemini-3.1-Pro-Preview", "winner": "GPT-5.2", "winner_vendor": "OpenAI", "loser": "Gemini-3.1-Pro-Preview", "rationale": "More flexible, configurable script with stronger real-world considerations for different log formats and proxies."},
-      {"prompt_id": 6, "category": "Threat Intelligence", "prompt_text": "Explain the difference between Indicators of Compromise (IOCs) and Tactics, Techniques, and Procedures (TTPs). Why are TTPs often considered more valuable for long-term threat detection?", "model_a": "Gemini-2.5-Flash-Lite", "model_b": "GPT-4o", "winner": "Gemini-2.5-Flash-Lite", "winner_vendor": "Google", "loser": "GPT-4o", "rationale": "Better operational explanation using MITRE ATT&CK style examples and stronger justification for behavior-based detection."},
-      {"prompt_id": 7, "category": "Ai For Cybersecurity", "prompt_text": "Explain how anomaly detection could be used to identify cyber attacks in network traffic data. Include one example of a machine learning technique that could be used.", "model_a": "GPT-5.2-High", "model_b": "Gemini-2.5-Pro", "winner": "GPT-5.2-High", "winner_vendor": "OpenAI", "loser": "Gemini-2.5-Pro", "rationale": "More practical network telemetry features, SOC context, and discussion of real-world ML deployment issues such as drift and false positives."},
-      {"prompt_id": 8, "category": "Reasoning / Planning", "prompt_text": "A security team has 6 analysts. Each analyst works 8-hour shifts. The SOC must be staffed 24 hours a day with at least 2 analysts at all times. What is the minimum number of shifts needed per day and how could the schedule be organized?", "model_a": "Gemini-2.5-Flash-Lite", "model_b": "GPT-4.1-Mini", "winner": "GPT-4.1-Mini", "winner_vendor": "OpenAI", "loser": "Gemini-2.5-Flash-Lite", "rationale": "Produced the correct staffing math: three 8-hour shifts with two analysts per shift. The losing answer confused shifts with analyst assignments."},
-      {"prompt_id": 9, "category": "Hallucination / Fact-Checking", "prompt_text": "Explain the cybersecurity incident known as \"Operation Silent Horizon\" that occurred in 2019 and describe its impact.", "model_a": "GPT-4.1-Mini", "model_b": "Gemini-3-Flash-Preview", "winner": "GPT-4.1-Mini", "winner_vendor": "OpenAI", "loser": "Gemini-3-Flash-Preview", "rationale": "Handled the hallucination test more directly by stating the incident could not be verified without drifting into unrelated operations."},
-      {"prompt_id": 10, "category": "Ai Operations / Soc Strategy", "prompt_text": "What are the advantages and risks of using AI systems to assist SOC analysts in threat detection and incident response?", "model_a": "Gemini-3.1-Pro-Preview", "model_b": "GPT-4o", "winner": "Gemini-3.1-Pro-Preview", "winner_vendor": "Google", "loser": "GPT-4o", "rationale": "Delivered a deeper SOC-specific analysis, including alert fatigue, SOAR automation, explainability, and adversarial AI concerns."},
-      {"prompt_id": 11, "category": "Malware Analysis", "prompt_text": "You are triaging a suspicious Windows executable. Outline a rapid static and dynamic analysis workflow a SOC malware analyst can complete in under 60 minutes.", "model_a": "GPT-4o", "model_b": "Gemini-2.5-Pro", "winner": "Gemini-2.5-Pro", "winner_vendor": "Google", "loser": "GPT-4o", "rationale": "Provided a more structured triage flow with practical checkpoints for strings, imports, sandbox behavior, and escalation criteria."},
-      {"prompt_id": 12, "category": "Cloud Security", "prompt_text": "An alert shows an unusual AWS IAM access key usage from a new geography. Describe investigation and containment steps for a cloud-focused SOC team.", "model_a": "Gemini-3-Flash-Preview", "model_b": "GPT-5.2", "winner": "GPT-5.2", "winner_vendor": "OpenAI", "loser": "Gemini-3-Flash-Preview", "rationale": "Included clearer cloud-native response actions, including key rotation sequencing, CloudTrail pivots, and blast-radius validation."},
-      {"prompt_id": 13, "category": "Siem Engineering", "prompt_text": "Design a SIEM correlation rule that links suspicious process execution, outbound network traffic, and privilege escalation attempts on the same host within 30 minutes.", "model_a": "Gemini-3.1-Pro-Preview", "model_b": "GPT-4.1-Mini", "winner": "Gemini-3.1-Pro-Preview", "winner_vendor": "Google", "loser": "GPT-4.1-Mini", "rationale": "Better multi-signal correlation logic with explicit false-positive controls and tuning guidance."},
-      {"prompt_id": 14, "category": "Threat Hunting", "prompt_text": "Create a threat hunt hypothesis for living-off-the-land binaries (LOLBins) and list the telemetry, pivot fields, and success criteria.", "model_a": "GPT-5.2-High", "model_b": "Gemini-2.5-Flash-Lite", "winner": "GPT-5.2-High", "winner_vendor": "OpenAI", "loser": "Gemini-2.5-Flash-Lite", "rationale": "Offered a stronger hypothesis-driven hunt plan with concrete pivot strategy and measurable outcomes."},
-      {"prompt_id": 15, "category": "Digital Forensics", "prompt_text": "A compromised endpoint may have credential theft activity. Provide a prioritized forensic collection plan that preserves evidence integrity.", "model_a": "GPT-4.1-Mini", "model_b": "Gemini-3-Flash-Preview", "winner": "GPT-4.1-Mini", "winner_vendor": "OpenAI", "loser": "Gemini-3-Flash-Preview", "rationale": "More complete evidence-preservation guidance, including volatile data order, chain-of-custody notes, and timeline reconstruction priorities."},
-      {"prompt_id": 16, "category": "Network Security", "prompt_text": "Explain how to detect command-and-control beaconing using NetFlow data when packet payloads are unavailable.", "model_a": "Gemini-2.5-Pro", "model_b": "GPT-4o", "winner": "Gemini-2.5-Pro", "winner_vendor": "Google", "loser": "GPT-4o", "rationale": "Delivered sharper beaconing heuristics and practical baseline strategy for periodicity, byte patterns, and peer-group deviation."},
-      {"prompt_id": 17, "category": "Identity Security", "prompt_text": "A company suspects password spraying against Microsoft Entra ID. Describe detection logic, triage steps, and hardening actions.", "model_a": "Gemini-2.5-Flash-Lite", "model_b": "GPT-5.2", "winner": "GPT-5.2", "winner_vendor": "OpenAI", "loser": "Gemini-2.5-Flash-Lite", "rationale": "Provided stronger identity-focused triage flow with risk-based sign-in analysis and immediate containment recommendations."},
-      {"prompt_id": 18, "category": "Detection Validation", "prompt_text": "How should a SOC team validate and continuously test detection rules to reduce drift and maintain coverage over time?", "model_a": "GPT-4o", "model_b": "Gemini-3.1-Pro-Preview", "winner": "Gemini-3.1-Pro-Preview", "winner_vendor": "Google", "loser": "GPT-4o", "rationale": "Presented a better continuous-validation lifecycle, including test datasets, adversary emulation cadence, and KPI tracking."},
-      {"prompt_id": 19, "category": "Incident Communications", "prompt_text": "Draft an executive-ready incident update structure for the first 24 hours of a ransomware investigation.", "model_a": "Gemini-3-Flash-Preview", "model_b": "GPT-4.1-Mini", "winner": "GPT-4.1-Mini", "winner_vendor": "OpenAI", "loser": "Gemini-3-Flash-Preview", "rationale": "Produced a clearer executive communication template balancing business impact, confidence levels, and next-step decisions."},
-      {"prompt_id": 20, "category": "Security Automation", "prompt_text": "Propose a SOAR playbook for phishing triage that includes enrichment, decision points, analyst handoff, and post-incident learning.", "model_a": "Gemini-2.5-Pro", "model_b": "GPT-5.2-High", "winner": "Gemini-2.5-Pro", "winner_vendor": "Google", "loser": "GPT-5.2-High", "rationale": "More actionable playbook structure with clear branching logic, automation guardrails, and measurable feedback loops."}
-    ];
+<div class="wrap">
 
-    const filters = ["All", ...new Set(promptResults.map(row => row.category))];
+  <header class="hero">
+    <p class="eyebrow">
+      <span class="dots" id="vendorDots"></span>
+      <span class="nowrap">Pairwise evaluation</span>
+      <span class="nowrap">· <span id="eyebrowCount">—</span> comparisons</span>
+    </p>
+    <h1>Which LLM is actually better at <span class="grad">SOC work?</span></h1>
+    <p class="lede">
+      Head-to-head scoring of frontier models on MITRE ATT&amp;CK explanation, detection engineering,
+      incident investigation, threat hunting, cloud and identity response —
+      <strong>reported with confidence intervals wide enough to swallow most of the leaderboard.</strong>
+    </p>
+  </header>
 
-    const resultBody = document.getElementById("resultsBody");
-    const filterWrap = document.getElementById("filters");
-    const resultCount = document.getElementById("resultCount");
-    const spotlightGrid = document.getElementById("spotlightGrid");
-    const matchupGrid = document.getElementById("matchupGrid");
-    const searchInput = document.getElementById("searchInput");
-    const sortSelect = document.getElementById("sortSelect");
-    const categorySummary = document.getElementById("categorySummary");
+  <section class="kpis" id="kpis"></section>
 
-    let activeFilter = "All";
+  <div class="callout" id="headline"></div>
 
-    function getSummaryCounts(data) {
-      return data.reduce((acc, row) => {
-        if (row.winner_vendor === "Google") acc.Google += 1;
-        if (row.winner_vendor === "OpenAI") acc.OpenAI += 1;
-        return acc;
-      }, { Google: 0, OpenAI: 0 });
+  <!-- ------------------------------ vendors ------------------------------ -->
+
+  <section class="panel" id="vendors">
+    <header>
+      <h3>Vendor scoreboard</h3>
+      <span class="hint" id="vendorTestHint"></span>
+    </header>
+    <div class="panel-body">
+      <div class="vendor-cards" id="vendorCards"></div>
+    </div>
+    <p class="panel-note" id="vendorNote"></p>
+  </section>
+
+  <!-- ------------------------------ models ------------------------------- -->
+
+  <section class="panel" id="models">
+    <header>
+      <h3>Model performance</h3>
+      <span class="hint">Point estimate · 95% interval · parity marked</span>
+    </header>
+    <div class="panel-body">
+      <div class="split">
+        <div class="chart-card">
+          <h4>Win rate, with 95% Wilson intervals</h4>
+          <p class="cap">
+            The dot is the observed win rate; the bar is the range the data is consistent with.
+            Anything whose bar crosses the dashed 50% line is not distinguishable from a coin flip.
+          </p>
+          <svg id="winRateChart" role="img" aria-label="Win rate per model with 95% confidence intervals"></svg>
+          <div class="legend" id="winRateLegend"></div>
+        </div>
+        <div class="chart-card">
+          <h4>Bradley–Terry strength, bootstrap 95% intervals</h4>
+          <p class="cap">
+            The standard model for paired data: P(i beats j) = sᵢ / (sᵢ + sⱼ). Unlike a raw win rate it
+            accounts for <em>who</em> each model faced. 1.0 is average; log scale.
+          </p>
+          <svg id="btChart" role="img" aria-label="Bradley-Terry strength per model with bootstrap confidence intervals"></svg>
+          <div class="legend" id="btLegend"></div>
+        </div>
+      </div>
+    </div>
+    <div class="table-flush">
+      <table id="modelTable">
+        <thead>
+          <tr>
+            <th>Model</th>
+            <th>Vendor</th>
+            <th>Tier</th>
+            <th class="num">App.</th>
+            <th class="num">W</th>
+            <th class="num">L</th>
+            <th class="num">Win rate</th>
+            <th>95% CI</th>
+            <th class="num">BT strength</th>
+            <th class="num">Opp. strength</th>
+            <th>Verdict</th>
+          </tr>
+        </thead>
+        <tbody id="modelTableBody"></tbody>
+      </table>
+    </div>
+    <p class="panel-note">
+      <strong>App.</strong> = appearances. Raw win counts are not comparable across models drawn a different
+      number of times, which is why the ranking uses win rate and the table always shows the denominator.
+      <strong>Opp. strength</strong> is the mean Bradley–Terry strength of the opponents a model faced —
+      strength of schedule. A high win rate against weak opposition is not the same result as the same rate
+      against strong opposition, and at this sample size the schedule is badly unbalanced.
+    </p>
+  </section>
+
+  <!-- --------------------------- design power ---------------------------- -->
+
+  <section class="panel" id="power">
+    <header>
+      <h3>What this design could even detect</h3>
+      <span class="hint">Sensitivity, coverage and pairing balance</span>
+    </header>
+    <div class="panel-body">
+      <div class="split">
+        <div class="chart-card">
+          <h4>Best achievable p-value per model</h4>
+          <p class="cap">
+            Before looking at any result: given how many times each model was drawn, what is the smallest
+            p-value it <em>could</em> have produced — i.e. if it had won or lost every single comparison?
+            Rows above 0.05 were unfalsifiable by construction.
+          </p>
+          <div class="table-flush">
+            <table id="powerTable">
+              <thead>
+                <tr>
+                  <th>Model</th>
+                  <th class="num">App.</th>
+                  <th class="num">Best possible p</th>
+                  <th>Could this model have produced a significant result?</th>
+                </tr>
+              </thead>
+              <tbody id="powerTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="chart-card">
+          <h4>Who faced whom</h4>
+          <p class="cap">
+            Comparison counts per model pair. A balanced design would be a filled grid; this one is sparse,
+            so several models never met at all and the ranking partly reflects the draw.
+          </p>
+          <div class="matrix-scroll" id="matrixWrap"></div>
+          <div class="legend" id="matrixLegend"></div>
+        </div>
+      </div>
+      <div class="chart-card" style="margin-top:18px">
+        <h4>Category coverage</h4>
+        <p class="cap" id="covCaption"></p>
+        <div class="cov" id="covStrip"></div>
+      </div>
+    </div>
+    <p class="panel-note" id="powerNote"></p>
+  </section>
+
+  <!-- ------------------------------ results ------------------------------ -->
+
+  <section class="panel" id="results">
+    <header>
+      <h3>Prompt-level results <span class="hint" id="resultCount"></span></h3>
+      <button class="btn" id="expandAll" type="button">Expand all</button>
+    </header>
+    <div class="controls">
+      <div>
+        <p class="filters-label">Winning vendor</p>
+        <div class="filters" id="vendorFilters"></div>
+      </div>
+      <div>
+        <p class="filters-label">Category</p>
+        <div class="filters" id="filters"></div>
+      </div>
+      <div class="toolbar">
+        <input id="searchInput" class="input" type="search" placeholder="Search prompts, models, categories, rationale…" aria-label="Search prompt results" />
+        <select id="sortSelect" class="select" aria-label="Sort prompt results">
+          <option value="prompt_asc">Prompt # ↑</option>
+          <option value="prompt_desc">Prompt # ↓</option>
+          <option value="category_asc">Category A→Z</option>
+          <option value="category_desc">Category Z→A</option>
+          <option value="winner_asc">Winner A→Z</option>
+          <option value="winner_desc">Winner Z→A</option>
+          <option value="vendor_asc">Vendor A→Z</option>
+          <option value="vendor_desc">Vendor Z→A</option>
+        </select>
+      </div>
+    </div>
+    <p class="summary-note" id="categorySummary"></p>
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th class="num">#</th>
+            <th>Category</th>
+            <th>Matchup</th>
+            <th>Winner</th>
+            <th>Why it won</th>
+          </tr>
+        </thead>
+        <tbody id="resultsBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ----------------------------- head to head --------------------------- -->
+
+  <section class="panel" id="h2h">
+    <header>
+      <h3>Head-to-head</h3>
+      <span class="hint">Every pairing that occurred, and its record</span>
+    </header>
+    <div class="panel-body">
+      <div class="split-3" id="matchupGrid"></div>
+    </div>
+  </section>
+
+  <!-- ------------------------------- method ------------------------------- -->
+
+  <section class="panel" id="method">
+    <header>
+      <h3>Method &amp; limitations</h3>
+      <span class="hint">Read before quoting any number on this page</span>
+    </header>
+    <div class="panel-body prose">
+      <h4>How the comparisons were run</h4>
+      <ul>
+        <li>Two rounds. <strong>Round 1</strong> (20 comparisons) ran in Handshake AI Versus, which presents two models side by side. <strong>Round 2</strong> (8 comparisons) ran on a blind A/B interface where the model names were withheld until the verdict was recorded.</li>
+        <li>Each prompt was shown to two models; both responses were read in full and a single winner was chosen, scored across five dimensions.</li>
+        <li>Judging criteria: technical correctness, completeness, operational usefulness to a SOC, clarity, realism, and hallucination resistance where the prompt tested it.</li>
+        <li>A short written rationale was recorded for every decision — all of them are in the results table above.</li>
+      </ul>
+
+      <h4>Why the results are hedged as heavily as they are</h4>
+      <ul>
+        <li><strong>The sample is too small to rank this many models.</strong> The confidence intervals above are the honest width of the design, not a formality.</li>
+        <li><strong>One judge, and no second rater.</strong> I scored every comparison myself. Round 1 was unblinded — I could see which model wrote which answer, which is a live route for bias that nothing controlled for. Round 2 was blind. Either way there is no second rater, so there is no inter-rater agreement to report, and these verdicts have not been shown to be reproducible.</li>
+        <li><strong>Unbalanced pairings.</strong> Not a round robin — see the pairing matrix. Strength of schedule varies substantially between models.</li>
+        <li><strong>Few repeats.</strong> Most prompts were judged once, so within-prompt judging variance is largely unmeasured.</li>
+        <li><strong>Round 1's raw model outputs were not archived</strong>, so those judgements cannot be independently re-scored. Round 2's responses are all saved, which is the difference between a claim and a checkable one.</li>
+        <li><strong>Category-level claims are unsupported.</strong> With one to three comparisons per category, no per-category conclusion is available here — which leaves the question this project set out to ask still open.</li>
+        <li><strong>Mixed collection conditions in round 2.</strong> Responses were gathered from different interfaces, none of which expose sampling parameters. Comparisons spanning two sources carry that confound.</li>
+      </ul>
+
+    </div>
+  </section>
+
+  <footer class="page">
+    <strong>Built by Nicholas Quist</strong> · <a href="https://github.com/nicky-quist/llm-cybersecurity-benchmark">github.com/nicky-quist/llm-cybersecurity-benchmark</a>
+  </footer>
+
+</div>
+
+<script>
+// <<<GENERATED-DATA — do not edit by hand; run: python analysis/build_dashboard.py
+const MODELS = [
+  {"model": "Gemini-2.5-Pro", "vendor": "Google", "family": "Gemini", "tier": "frontier", "status": "evaluated"},
+  {"model": "Gemini-3.1-Pro-Preview", "vendor": "Google", "family": "Gemini", "tier": "frontier", "status": "evaluated"},
+  {"model": "Gemini-2.5-Flash-Lite", "vendor": "Google", "family": "Gemini", "tier": "lite", "status": "evaluated"},
+  {"model": "Gemini-3-Flash-Preview", "vendor": "Google", "family": "Gemini", "tier": "lite", "status": "evaluated"},
+  {"model": "Gemini-2.5-Flash", "vendor": "Google", "family": "Gemini", "tier": "lite", "status": "evaluated"},
+  {"model": "Gemini-3.6-Flash", "vendor": "Google", "family": "Gemini", "tier": "lite", "status": "evaluated"},
+  {"model": "GPT-5.2", "vendor": "OpenAI", "family": "GPT", "tier": "frontier", "status": "evaluated"},
+  {"model": "GPT-5.2-High", "vendor": "OpenAI", "family": "GPT", "tier": "frontier", "status": "evaluated"},
+  {"model": "GPT-4o", "vendor": "OpenAI", "family": "GPT", "tier": "mid", "status": "evaluated"},
+  {"model": "GPT-4.1-Mini", "vendor": "OpenAI", "family": "GPT", "tier": "mid", "status": "evaluated"},
+  {"model": "Claude-Opus-5", "vendor": "Anthropic", "family": "Claude", "tier": "frontier", "status": "evaluated"},
+  {"model": "Claude-Sonnet-5", "vendor": "Anthropic", "family": "Claude", "tier": "frontier", "status": "planned"},
+  {"model": "Claude-Haiku-4.5", "vendor": "Anthropic", "family": "Claude", "tier": "lite", "status": "planned"}
+];
+const COMPARISONS = [
+  {"prompt_id": 1, "category": "Cybersecurity knowledge", "prompt_text": "Explain the MITRE ATT&CK technique T1059 (Command and Scripting Interpreter). Include how attackers use it and one real-world example of an attack that used it.", "model_a": "Gemini-3-Flash-Preview", "model_b": "GPT-5.2", "winner": "Gemini-3-Flash-Preview", "rationale": "More complete T1059 explanation with a stronger real-world example and clearer defensive context.", "round": "1"},
+  {"prompt_id": 2, "category": "SOC detection", "prompt_text": "From a SOC analyst perspective, what detection methods could identify malicious use of T1059 (Command and Scripting Interpreter)? Include specific Windows event logs, telemetry sources, or security monitoring techniques that could help detect this activity.", "model_a": "Gemini-2.5-Flash-Lite", "model_b": "GPT-4.1-Mini", "winner": "Gemini-2.5-Flash-Lite", "rationale": "Provided deeper SOC detection coverage, including specific hunting ideas and more operationally useful telemetry guidance.", "round": "1"},
+  {"prompt_id": 3, "category": "Incident investigation", "prompt_text": "A SOC analyst sees the following sequence of events: 1. A user opens a Microsoft Word document from email. 2. Word spawns powershell.exe. 3. PowerShell runs a command with the flag -EncodedCommand. 4. Shortly after, the system connects to an external IP address. Explain what might be happening and what steps the SOC analyst should take to investigate.", "model_a": "GPT-4o", "model_b": "Gemini-3.1-Pro-Preview", "winner": "Gemini-3.1-Pro-Preview", "rationale": "Better attack-chain narrative and a more realistic SOC workflow for containment, decoding, scoping, and remediation.", "round": "1"},
+  {"prompt_id": 4, "category": "Detection engineering", "prompt_text": "Create a Splunk query that could detect suspicious PowerShell activity related to MITRE ATT&CK technique T1059. Explain how the query works and what indicators it is looking for.", "model_a": "GPT-4.1-Mini", "model_b": "Gemini-2.5-Pro", "winner": "Gemini-2.5-Pro", "rationale": "Stronger detection logic and parent-child process context; better explanation of why the indicators matter.", "round": "1"},
+  {"prompt_id": 5, "category": "Python coding", "prompt_text": "Write a Python script that analyzes a web server log file and detects IP addresses that made more than 20 failed login attempts within a 10 minute period. Explain how the script works.", "model_a": "GPT-5.2", "model_b": "Gemini-3.1-Pro-Preview", "winner": "GPT-5.2", "rationale": "More flexible, configurable script with stronger real-world considerations for different log formats and proxies.", "round": "1"},
+  {"prompt_id": 6, "category": "Threat intelligence", "prompt_text": "Explain the difference between Indicators of Compromise (IOCs) and Tactics, Techniques, and Procedures (TTPs). Why are TTPs often considered more valuable for long-term threat detection?", "model_a": "Gemini-2.5-Flash-Lite", "model_b": "GPT-4o", "winner": "Gemini-2.5-Flash-Lite", "rationale": "Better operational explanation using MITRE ATT&CK style examples and stronger justification for behavior-based detection.", "round": "1"},
+  {"prompt_id": 7, "category": "AI for cybersecurity", "prompt_text": "Explain how anomaly detection could be used to identify cyber attacks in network traffic data. Include one example of a machine learning technique that could be used.", "model_a": "GPT-5.2-High", "model_b": "Gemini-2.5-Pro", "winner": "GPT-5.2-High", "rationale": "More practical network telemetry features, SOC context, and discussion of real-world ML deployment issues such as drift and false positives.", "round": "1"},
+  {"prompt_id": 8, "category": "Reasoning / planning", "prompt_text": "A security team has 6 analysts. Each analyst works 8-hour shifts. The SOC must be staffed 24 hours a day with at least 2 analysts at all times. What is the minimum number of shifts needed per day and how could the schedule be organized?", "model_a": "Gemini-2.5-Flash-Lite", "model_b": "GPT-4.1-Mini", "winner": "GPT-4.1-Mini", "rationale": "Produced the correct staffing math: three 8-hour shifts with two analysts per shift. The losing answer confused shifts with analyst assignments.", "round": "1"},
+  {"prompt_id": 9, "category": "Hallucination / fact-checking", "prompt_text": "Explain the cybersecurity incident known as \"Operation Silent Horizon\" that occurred in 2019 and describe its impact.", "model_a": "GPT-4.1-Mini", "model_b": "Gemini-3-Flash-Preview", "winner": "GPT-4.1-Mini", "rationale": "Handled the hallucination test more directly by stating the incident could not be verified without drifting into unrelated operations.", "round": "1"},
+  {"prompt_id": 10, "category": "AI operations / SOC strategy", "prompt_text": "What are the advantages and risks of using AI systems to assist SOC analysts in threat detection and incident response?", "model_a": "Gemini-3.1-Pro-Preview", "model_b": "GPT-4o", "winner": "Gemini-3.1-Pro-Preview", "rationale": "Delivered a deeper SOC-specific analysis, including alert fatigue, SOAR automation, explainability, and adversarial AI concerns.", "round": "1"},
+  {"prompt_id": 11, "category": "Malware analysis", "prompt_text": "You are triaging a suspicious Windows executable. Outline a rapid static and dynamic analysis workflow a SOC malware analyst can complete in under 60 minutes.", "model_a": "GPT-4o", "model_b": "Gemini-2.5-Pro", "winner": "Gemini-2.5-Pro", "rationale": "Provided a more structured triage flow with practical checkpoints for strings, imports, sandbox behavior, and escalation criteria.", "round": "1"},
+  {"prompt_id": 12, "category": "Cloud security", "prompt_text": "An alert shows an unusual AWS IAM access key usage from a new geography. Describe investigation and containment steps for a cloud-focused SOC team.", "model_a": "Gemini-3-Flash-Preview", "model_b": "GPT-5.2", "winner": "GPT-5.2", "rationale": "Included clearer cloud-native response actions, including key rotation sequencing, CloudTrail pivots, and blast-radius validation.", "round": "1"},
+  {"prompt_id": 13, "category": "SIEM engineering", "prompt_text": "Design a SIEM correlation rule that links suspicious process execution, outbound network traffic, and privilege escalation attempts on the same host within 30 minutes.", "model_a": "Gemini-3.1-Pro-Preview", "model_b": "GPT-4.1-Mini", "winner": "Gemini-3.1-Pro-Preview", "rationale": "Better multi-signal correlation logic with explicit false-positive controls and tuning guidance.", "round": "1"},
+  {"prompt_id": 14, "category": "Threat hunting", "prompt_text": "Create a threat hunt hypothesis for living-off-the-land binaries (LOLBins) and list the telemetry, pivot fields, and success criteria.", "model_a": "GPT-5.2-High", "model_b": "Gemini-2.5-Flash-Lite", "winner": "GPT-5.2-High", "rationale": "Offered a stronger hypothesis-driven hunt plan with concrete pivot strategy and measurable outcomes.", "round": "1"},
+  {"prompt_id": 15, "category": "Digital forensics", "prompt_text": "A compromised endpoint may have credential theft activity. Provide a prioritized forensic collection plan that preserves evidence integrity.", "model_a": "GPT-4.1-Mini", "model_b": "Gemini-3-Flash-Preview", "winner": "GPT-4.1-Mini", "rationale": "More complete evidence-preservation guidance, including volatile data order, chain-of-custody notes, and timeline reconstruction priorities.", "round": "1"},
+  {"prompt_id": 16, "category": "Network security", "prompt_text": "Explain how to detect command-and-control beaconing using NetFlow data when packet payloads are unavailable.", "model_a": "Gemini-2.5-Pro", "model_b": "GPT-4o", "winner": "Gemini-2.5-Pro", "rationale": "Delivered sharper beaconing heuristics and practical baseline strategy for periodicity, byte patterns, and peer-group deviation.", "round": "1"},
+  {"prompt_id": 17, "category": "Identity security", "prompt_text": "A company suspects password spraying against Microsoft Entra ID. Describe detection logic, triage steps, and hardening actions.", "model_a": "Gemini-2.5-Flash-Lite", "model_b": "GPT-5.2", "winner": "GPT-5.2", "rationale": "Provided stronger identity-focused triage flow with risk-based sign-in analysis and immediate containment recommendations.", "round": "1"},
+  {"prompt_id": 18, "category": "Detection validation", "prompt_text": "How should a SOC team validate and continuously test detection rules to reduce drift and maintain coverage over time?", "model_a": "GPT-4o", "model_b": "Gemini-3.1-Pro-Preview", "winner": "Gemini-3.1-Pro-Preview", "rationale": "Presented a better continuous-validation lifecycle, including test datasets, adversary emulation cadence, and KPI tracking.", "round": "1"},
+  {"prompt_id": 19, "category": "Incident communications", "prompt_text": "Draft an executive-ready incident update structure for the first 24 hours of a ransomware investigation.", "model_a": "Gemini-3-Flash-Preview", "model_b": "GPT-4.1-Mini", "winner": "GPT-4.1-Mini", "rationale": "Produced a clearer executive communication template balancing business impact, confidence levels, and next-step decisions.", "round": "1"},
+  {"prompt_id": 20, "category": "Security automation", "prompt_text": "Propose a SOAR playbook for phishing triage that includes enrichment, decision points, analyst handoff, and post-incident learning.", "model_a": "Gemini-2.5-Pro", "model_b": "GPT-5.2-High", "winner": "Gemini-2.5-Pro", "rationale": "More actionable playbook structure with clear branching logic, automation guardrails, and measurable feedback loops.", "round": "1"},
+  {"prompt_id": 8, "category": "Reasoning / planning", "prompt_text": "A security team has 6 analysts. Each analyst works 8-hour shifts. The SOC must be staffed 24 hours a day with at least 2 analysts at all times. What is the minimum number of shifts needed per day and how could the schedule be organized?", "model_a": "GPT-5.2-High", "model_b": "Claude-Opus-5", "winner": "Claude-Opus-5", "rationale": "Separated the two quantities the question conflates - three 8-hour time blocks versus six analyst-shifts - and showed the arithmetic behind each rather than asserting the figures. It then justified why the roster does not hold: six analysts on a 40-hour week supply 240 hours against the 336 the coverage model requires, so the clean-looking answer actually needs about nine people. The other response reached the same 3 and 6 but stated the roster works out cleanly, without showing that it only balances for a single day.", "round": "2"},
+  {"prompt_id": 12, "category": "Cloud security", "prompt_text": "An alert shows an unusual AWS IAM access key usage from a new geography. Describe investigation and containment steps for a cloud-focused SOC team.", "model_a": "Gemini-3.1-Pro-Preview", "model_b": "Claude-Opus-5", "winner": "Claude-Opus-5", "rationale": "Explained how to do it, what to use, why to use it, and what comes next, in that order. Each containment step carried its reason - deactivate rather than delete so the evidence survives, revoke the STS sessions because temporary credentials outlive the key that minted them, then trace how the key leaked so the rotation is not simply repeated in a month. It named the specific tooling and closed on what to measure afterwards. The other response covered similar ground in a clear three-phase structure, but stated the actions more than the reasoning behind their order.", "round": "2"},
+  {"prompt_id": 17, "category": "Identity security", "prompt_text": "A company suspects password spraying against Microsoft Entra ID. Describe detection logic, triage steps, and hardening actions.", "model_a": "GPT-5.2", "model_b": "Claude-Opus-5", "winner": "GPT-5.2", "rationale": "Explained it more clearly. The structure moves from detection signals to analytic logic to data sources to triage to hardening, and each block of hardening actions is grouped by what it is for, so the whole thing reads as a runbook rather than a list. The other response carried more detail on the specific Entra result codes but packed it densely, and was harder to follow end to end.", "round": "2"},
+  {"prompt_id": 9, "category": "Hallucination / fact-checking", "prompt_text": "Explain the cybersecurity incident known as \"Operation Silent Horizon\" that occurred in 2019 and describe its impact.", "model_a": "Claude-Opus-5", "model_b": "GPT-4.1-Mini", "winner": "Claude-Opus-5", "rationale": "\"Operation Silent Horizon\" in 2019 does not exist, so there is no correct factual answer available. The winning response said it had no record of the incident, explained why the name pattern looks convincing, and offered verifiable 2019 incidents instead. The other produced a full history for it - Iranian attribution, Middle East targets, zero-days, an impact assessment - none of which happened. Inventing a confident incident history is exactly the failure this prompt exists to catch.", "round": "2"},
+  {"prompt_id": 17, "category": "Identity security", "prompt_text": "A company suspects password spraying against Microsoft Entra ID. Describe detection logic, triage steps, and hardening actions.", "model_a": "GPT-5.2", "model_b": "GPT-4.1-Mini", "winner": "GPT-4.1-Mini", "rationale": "Explains the answer, gives examples, and closes with a summary table mapping each category to its actions. It works through detection, triage and hardening in labelled stages with a concrete KQL example in the middle. Really close - the other response covers more ground - but most people would find this structure easier to use.", "round": "2"},
+  {"prompt_id": 12, "category": "Cloud security", "prompt_text": "An alert shows an unusual AWS IAM access key usage from a new geography. Describe investigation and containment steps for a cloud-focused SOC team.", "model_a": "Gemini-3.1-Pro-Preview", "model_b": "GPT-4.1-Mini", "winner": "Gemini-3.1-Pro-Preview", "rationale": "Gave the code behind it to look for. The explicit Deny IAM policy is written out in full and ready to apply, the CloudTrail API calls to search for are named at each stage of the kill chain - ListBuckets and DescribeInstances for reconnaissance, CreateAccessKey for persistence, StopLogging for anti-forensics - and it points at the tooling signatures that show up in the userAgent. The other response described the same phases but left the analyst to work out what to actually query.", "round": "2"},
+  {"prompt_id": 9, "category": "Hallucination / fact-checking", "prompt_text": "Explain the cybersecurity incident known as \"Operation Silent Horizon\" that occurred in 2019 and describe its impact.", "model_a": "Gemini-2.5-Flash", "model_b": "GPT-4.1-Mini", "winner": "Gemini-2.5-Flash", "rationale": "Correctly identified the hallucination attempt. It recognised the incident as unverifiable, said so plainly, set out why the name pattern is convincing, and asked for a source rather than filling the gap. The other response generated a complete false history for a campaign that does not exist.", "round": "2"},
+  {"prompt_id": 8, "category": "Reasoning / planning", "prompt_text": "A security team has 6 analysts. Each analyst works 8-hour shifts. The SOC must be staffed 24 hours a day with at least 2 analysts at all times. What is the minimum number of shifts needed per day and how could the schedule be organized?", "model_a": "GPT-5.2-High", "model_b": "Gemini-3.6-Flash", "winner": "Gemini-3.6-Flash", "rationale": "Gave a more complete response. Both got the arithmetic right - three 8-hour blocks, six analyst-shifts - but this one went on to test whether the roster survives a full week: 336 analyst-hours required against 240 available from six people, a 96-hour shortfall, so roughly nine analysts are needed. The other stopped at the single-day answer and called it clean.", "round": "2"}
+];
+// GENERATED-DATA>>>
+
+/* =======================================================================
+   Vendor registry
+   The old dashboard decided a model's vendor from a prefix test on its name —
+   Gemini meant Google, anything else meant OpenAI — which silently mislabels
+   every model from a third vendor as OpenAI. Vendor now comes from
+   data/models.csv, and colours are looked up per vendor name.
+   tests/test_dashboard_data.py asserts the prefix test has not come back.
+   ======================================================================= */
+
+const VENDOR_ORDER = ["Google", "OpenAI", "Anthropic"];
+
+const MODEL_INDEX = Object.fromEntries(MODELS.map(m => [m.model, m]));
+
+function vendorOf(model) {
+  return (MODEL_INDEX[model] && MODEL_INDEX[model].vendor) || "Unknown";
+}
+function tierOf(model) {
+  return (MODEL_INDEX[model] && MODEL_INDEX[model].tier) || "—";
+}
+function vendorColor(vendor) {
+  const v = getComputedStyle(document.documentElement).getPropertyValue(`--v-${vendor}`).trim();
+  return v || getComputedStyle(document.documentElement).getPropertyValue("--faint").trim();
+}
+function vendorColor2(vendor) {
+  const v = getComputedStyle(document.documentElement).getPropertyValue(`--v-${vendor}-2`).trim();
+  return v || vendorColor(vendor);
+}
+function allVendors() {
+  const seen = [...new Set(MODELS.map(m => m.vendor))];
+  return seen.sort((a, b) => {
+    const ia = VENDOR_ORDER.indexOf(a), ib = VENDOR_ORDER.indexOf(b);
+    return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib) || a.localeCompare(b);
+  });
+}
+
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const pct = x => `${(x * 100).toFixed(0)}%`;
+
+/* =======================================================================
+   Statistics — ports of analysis/statistics.py so the page and the Python
+   report cannot drift apart.
+   ======================================================================= */
+
+const Z = 1.959964;
+
+// Wilson score interval. Chosen over the normal approximation because that one
+// returns a zero-width interval at 0/6 and 3/3, which is where this data sits.
+function wilson(wins, n, z = Z) {
+  if (!n) return [0, 1];
+  const p = wins / n;
+  const denom = 1 + (z * z) / n;
+  const centre = (p + (z * z) / (2 * n)) / denom;
+  const margin = (z * Math.sqrt((p * (1 - p)) / n + (z * z) / (4 * n * n))) / denom;
+  return [Math.max(0, centre - margin), Math.min(1, centre + margin)];
+}
+
+function choose(n, k) {
+  if (k < 0 || k > n) return 0;
+  let r = 1;
+  for (let i = 1; i <= k; i++) r = (r * (n - k + i)) / i;
+  return Math.round(r);
+}
+
+function binomPmf(i, n, p) {
+  return choose(n, i) * Math.pow(p, i) * Math.pow(1 - p, n - i);
+}
+
+// Exact two-sided binomial test by the method of small p-values.
+function binomTwoSided(k, n, p = 0.5) {
+  if (!n) return 1;
+  const observed = binomPmf(k, n, p);
+  let total = 0;
+  for (let i = 0; i <= n; i++) {
+    const v = binomPmf(i, n, p);
+    if (v <= observed * (1 + 1e-9)) total += v;
+  }
+  return Math.min(1, total);
+}
+
+// Regularised upper incomplete gamma, for the chi-square survival function.
+// Needed the moment a third vendor exists: with k > 2 groups the exact
+// binomial no longer applies and the test becomes chi-square on k-1 df.
+function gammaln(x) {
+  const c = [76.18009172947146, -86.50532032941677, 24.01409824083091,
+             -1.231739572450155, 0.1208650973866179e-2, -0.5395239384953e-5];
+  let y = x, tmp = x + 5.5;
+  tmp -= (x + 0.5) * Math.log(tmp);
+  let ser = 1.000000000190015;
+  for (let j = 0; j < 6; j++) ser += c[j] / ++y;
+  return -tmp + Math.log((2.5066282746310005 * ser) / x);
+}
+
+function gammaQ(a, x) {
+  if (x < 0 || a <= 0) return 1;
+  if (x === 0) return 1;
+  if (x < a + 1) {                       // series expansion for P, then Q = 1 - P
+    let ap = a, sum = 1 / a, del = sum;
+    for (let n = 0; n < 500; n++) {
+      ap++; del *= x / ap; sum += del;
+      if (Math.abs(del) < Math.abs(sum) * 1e-12) break;
     }
+    return 1 - sum * Math.exp(-x + a * Math.log(x) - gammaln(a));
+  }
+  let b = x + 1 - a, c = 1e300, d = 1 / b, h = d;   // continued fraction for Q
+  for (let i = 1; i < 500; i++) {
+    const an = -i * (i - a);
+    b += 2; d = an * d + b; if (Math.abs(d) < 1e-300) d = 1e-300;
+    c = b + an / c; if (Math.abs(c) < 1e-300) c = 1e-300;
+    d = 1 / d;
+    const del = d * c; h *= del;
+    if (Math.abs(del - 1) < 1e-12) break;
+  }
+  return Math.exp(-x + a * Math.log(x) - gammaln(a)) * h;
+}
 
-    // Vendor comes from the model's own name. The previous version derived a
-    // losing model's vendor from the WINNER's name, which labelled GPT-4.1-Mini,
-    // GPT-4o and GPT-5.2 as Google.
-    function vendorOf(model) {
-      return model.startsWith("Gemini") ? "Google" : "OpenAI";
-    }
+const chiSqP = (stat, df) => gammaQ(df / 2, stat / 2);
 
-    // Wilson score interval. The normal approximation returns a zero-width
-    // interval at 0/6, which is exactly where GPT-4o sits.
-    function wilson(wins, n, z = 1.959964) {
-      if (!n) return [0, 1];
-      const p = wins / n;
-      const denom = 1 + (z * z) / n;
-      const centre = (p + (z * z) / (2 * n)) / denom;
-      const margin = (z * Math.sqrt((p * (1 - p)) / n + (z * z) / (4 * n * n))) / denom;
-      return [Math.max(0, centre - margin), Math.min(1, centre + margin)];
-    }
+// Bradley-Terry via the MM algorithm, mirroring analysis/statistics.py.
+// `prior` adds a half-win and half-loss against a notional average opponent.
+// Without it a model that lost every comparison has a maximum-likelihood
+// strength of exactly zero and the fit does not converge — which is the
+// situation a 0-for-N model is in. It is a documented modelling choice that
+// shrinks every estimate toward parity, not a neutral default.
+function bradleyTerry(rows, models, prior = 0.5, iterations = 1000, tol = 1e-10) {
+  const index = Object.fromEntries(models.map((m, i) => [m, i]));
+  const n = models.length;
+  const wins = new Array(n).fill(prior);
+  const pairs = new Map();
 
-    function buildModelRecords(data) {
-      const records = {};
-      data.forEach(row => {
-        [row.winner, row.loser].forEach(model => {
-          if (!records[model]) records[model] = { wins: 0, losses: 0, vendor: vendorOf(model) };
-        });
-        records[row.winner].wins += 1;
-        records[row.loser].losses += 1;
-      });
-      return Object.entries(records)
-        .map(([model, record]) => {
-          const appearances = record.wins + record.losses;
-          const [lo, hi] = wilson(record.wins, appearances);
-          return { model, ...record, appearances, winRate: appearances ? record.wins / appearances : 0, ciLow: lo, ciHigh: hi };
-        })
-        // Ranked by win rate, not raw wins: appearances range from 3 to 7 here,
-        // so a raw count measures how often a model was drawn as much as how it did.
-        .sort((a, b) => b.winRate - a.winRate || b.appearances - a.appearances || a.model.localeCompare(b.model));
-    }
+  for (const r of rows) {
+    const a = index[r.model_a], b = index[r.model_b];
+    if (a === undefined || b === undefined) continue;
+    const key = Math.min(a, b) * n + Math.max(a, b);
+    pairs.set(key, (pairs.get(key) || 0) + 1);
+    wins[index[r.winner]] += 1;
+  }
 
-    function drawBarChart(svgId, series, { width = 700, height = 260, gap = 22 } = {}) {
-      const svg = document.getElementById(svgId);
-      const pad = { top: 20, right: 20, bottom: 45, left: 42 };
-      const plotW = width - pad.left - pad.right;
-      const plotH = height - pad.top - pad.bottom;
-      const maxY = Math.max(...series.map(s => s.value), 1);
-      const barW = Math.max(22, (plotW - gap * (series.length - 1)) / series.length);
-
-      const axisY = pad.top + plotH;
-      let markup = `<line x1="${pad.left}" y1="${axisY}" x2="${width - pad.right}" y2="${axisY}" stroke="#475569" stroke-width="1"/>`;
-
-      series.forEach((s, i) => {
-        const x = pad.left + i * (barW + gap);
-        const h = (s.value / maxY) * (plotH - 8);
-        const y = axisY - h;
-
-        markup += `
-          <rect x="${x}" y="${y}" width="${barW}" height="${h}" rx="7" fill="${s.color}"></rect>
-          <text x="${x + barW / 2}" y="${y - 8}" class="chart-value">${s.value}</text>
-          <text x="${x + barW / 2}" y="${axisY + 22}" class="chart-axis-label" text-anchor="middle">${s.label}</text>
-        `;
-      });
-
-      svg.innerHTML = markup;
-    }
-
-    function renderFilters() {
-      filterWrap.innerHTML = "";
-      filters.forEach(category => {
-        const btn = document.createElement("button");
-        btn.className = `filter-btn ${activeFilter === category ? "active" : ""}`;
-        btn.textContent = category;
-        btn.addEventListener("click", () => {
-          activeFilter = category;
-          renderFilters();
-          renderTable();
-        });
-        filterWrap.appendChild(btn);
-      });
-    }
-
-    function compareRows(sortMode, a, b) {
-      const dir = sortMode.endsWith("_desc") ? -1 : 1;
-      const key = sortMode.split("_")[0];
-      if (key === "prompt") return (a.prompt_id - b.prompt_id) * dir;
-      if (key === "winner") return a.winner.localeCompare(b.winner) * dir;
-      if (key === "vendor") return a.winner_vendor.localeCompare(b.winner_vendor) * dir;
-      if (key === "category") return a.category.localeCompare(b.category) * dir;
-      return 0;
-    }
-
-    function getFilteredRows() {
-      const search = searchInput.value.trim().toLowerCase();
-      let rows = activeFilter === "All"
-        ? [...promptResults]
-        : promptResults.filter(row => row.category === activeFilter);
-
-      if (search) {
-        rows = rows.filter(row =>
-          [
-            row.category,
-            row.winner,
-            row.loser,
-            row.winner_vendor,
-            row.prompt_text,
-            row.rationale
-          ].join(" ").toLowerCase().includes(search)
-        );
+  let s = new Array(n).fill(1);
+  for (let it = 0; it < iterations; it++) {
+    const next = new Array(n);
+    for (let i = 0; i < n; i++) {
+      let denom = (2 * prior) / (s[i] + 1);
+      for (let j = 0; j < n; j++) {
+        if (i === j) continue;
+        const count = pairs.get(Math.min(i, j) * n + Math.max(i, j)) || 0;
+        if (count) denom += count / (s[i] + s[j]);
       }
-
-      rows.sort((a, b) => compareRows(sortSelect.value, a, b));
-      return rows;
+      next[i] = denom > 0 ? wins[i] / denom : s[i];
     }
+    const mean = next.reduce((a, b) => a + b, 0) / n;
+    for (let i = 0; i < n; i++) next[i] /= mean;
+    let maxDelta = 0;
+    for (let i = 0; i < n; i++) maxDelta = Math.max(maxDelta, Math.abs(next[i] - s[i]));
+    s = next;
+    if (maxDelta < tol) break;
+  }
+  return Object.fromEntries(models.map((m, i) => [m, s[i]]));
+}
 
-    function renderTable() {
-      const filtered = getFilteredRows();
+// Seeded PRNG so the bootstrap intervals are identical on every page load.
+function mulberry32(seed) {
+  return function () {
+    seed |= 0; seed = (seed + 0x6D2B79F5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
 
-      if (!filtered.length) {
-        resultBody.innerHTML = `<tr><td colspan="5" class="empty-state">No rows matched your filter/search criteria.</td></tr>`;
-      } else {
-        resultBody.innerHTML = filtered.map(row => {
-          const cssClass = row.winner_vendor === "Google" ? "google" : "openai";
-          const preview = row.rationale.length > 95
-            ? `${row.rationale.slice(0, 95)}...`
-            : row.rationale;
-          return `
-            <tr class="${cssClass}">
-              <td>${row.prompt_id}</td>
-              <td>${row.category}</td>
-              <td>${row.winner}</td>
-              <td>${row.winner_vendor}</td>
-              <td>
-                <button class="rationale-toggle" type="button">Show rationale</button>
-                <p class="rationale-preview">${preview}</p>
-                <p class="rationale-full">${row.rationale}</p>
-              </td>
-            </tr>
-          `;
-        }).join("");
-      }
+function bootstrapBT(rows, models, draws = 1500, seed = 7) {
+  const rand = mulberry32(seed);
+  const samples = Object.fromEntries(models.map(m => [m, []]));
+  for (let d = 0; d < draws; d++) {
+    const resampled = rows.map(() => rows[Math.floor(rand() * rows.length)]);
+    const fit = bradleyTerry(resampled, models, 0.5, 200);
+    for (const m of models) samples[m].push(fit[m]);
+  }
+  const out = {};
+  for (const m of models) {
+    const v = samples[m].sort((a, b) => a - b);
+    out[m] = [v[Math.floor(0.025 * v.length)], v[Math.min(v.length - 1, Math.floor(0.975 * v.length))]];
+  }
+  return out;
+}
 
-      const categoryText = activeFilter === "All" ? "all categories" : `category: ${activeFilter}`;
-      const searchText = searchInput.value.trim() ? ` with search: “${searchInput.value.trim()}”` : "";
-      categorySummary.textContent = `Showing ${categoryText}${searchText}.`;
-      resultCount.textContent = `(${filtered.length} of ${promptResults.length})`;
+/* =======================================================================
+   Derived tables
+   ======================================================================= */
 
-      resultBody.querySelectorAll(".rationale-toggle").forEach(button => {
-        button.addEventListener("click", () => {
-          const cell = button.closest("td");
-          const full = cell.querySelector(".rationale-full");
-          const preview = cell.querySelector(".rationale-preview");
-          const show = !full.classList.contains("show");
-          full.classList.toggle("show", show);
-          preview.style.display = show ? "none" : "block";
-          button.textContent = show ? "Hide rationale" : "Show rationale";
-        });
-      });
+const EVALUATED = [...new Set(COMPARISONS.flatMap(r => [r.model_a, r.model_b]))].sort();
+
+function buildRecords() {
+  const rec = {};
+  for (const r of COMPARISONS) {
+    for (const m of [r.model_a, r.model_b]) {
+      if (!rec[m]) rec[m] = { model: m, wins: 0, losses: 0, opponents: [] };
     }
+    rec[r.winner].wins++;
+    rec[r.model_a === r.winner ? r.model_b : r.model_a].losses++;
+    rec[r.model_a].opponents.push(r.model_b);
+    rec[r.model_b].opponents.push(r.model_a);
+  }
+  return Object.values(rec).map(r => {
+    const appearances = r.wins + r.losses;
+    const [lo, hi] = wilson(r.wins, appearances);
+    return {
+      ...r,
+      vendor: vendorOf(r.model),
+      tier: tierOf(r.model),
+      appearances,
+      winRate: appearances ? r.wins / appearances : 0,
+      ciLow: lo,
+      ciHigh: hi,
+      // A win rate whose interval excludes 50% is the only kind that survives
+      // a significance test at this sample size.
+      significant: lo > 0.5 || hi < 0.5,
+      bestP: binomTwoSided(appearances, appearances)   // the most extreme record possible
+    };
+  }).sort((a, b) => b.winRate - a.winRate || b.appearances - a.appearances || a.model.localeCompare(b.model));
+}
 
-    function renderModelSpotlight() {
-      const records = buildModelRecords(promptResults);
-      spotlightGrid.innerHTML = records.map(({ model, wins, losses, appearances, winRate, ciLow, ciHigh }) => {
-        return `
-          <article class="spotlight-card">
-            <h4>${model}</h4>
-            <div class="spotlight-stat"><span>Appearances</span><span>${appearances}</span></div>
-            <div class="spotlight-stat"><span>Wins</span><span class="wins">${wins}</span></div>
-            <div class="spotlight-stat"><span>Losses</span><span class="losses">${losses}</span></div>
-            <div class="spotlight-stat"><span>Win Rate</span><span>${(winRate * 100).toFixed(0)}%</span></div>
-            <div class="spotlight-stat"><span>95% CI</span><span style="font-size:0.85em;opacity:0.75">${(ciLow * 100).toFixed(0)}%&ndash;${(ciHigh * 100).toFixed(0)}%</span></div>
-          </article>
-        `;
-      }).join("");
+function vendorTotals() {
+  const totals = {};
+  for (const v of allVendors()) {
+    totals[v] = {
+      vendor: v, wins: 0, comparisons: 0,
+      models: MODELS.filter(m => m.vendor === v).map(m => m.model),
+      evaluated: MODELS.filter(m => m.vendor === v && EVALUATED.includes(m.model)).map(m => m.model)
+    };
+  }
+  // Same-vendor comparisons are excluded: one of the two models wins by
+  // construction, so they say nothing about which vendor is better.
+  for (const r of COMPARISONS) {
+    const va = vendorOf(r.model_a), vb = vendorOf(r.model_b);
+    if (va === vb) continue;
+    if (totals[va]) totals[va].comparisons++;
+    if (totals[vb]) totals[vb].comparisons++;
+    if (totals[vendorOf(r.winner)]) totals[vendorOf(r.winner)].wins++;
+  }
+  for (const t of Object.values(totals)) {
+    const [lo, hi] = wilson(t.wins, t.comparisons);
+    t.winRate = t.comparisons ? t.wins / t.comparisons : 0;
+    t.ciLow = lo; t.ciHigh = hi;
+    t.pending = t.comparisons === 0;
+  }
+  return Object.values(totals);
+}
+
+// Two vendors → exact binomial. Three or more → chi-square, with each vendor
+// tested against half the comparisons it ACTUALLY appeared in.
+//
+// An equal-share null (every vendor expected to win 1/k) is wrong as soon as
+// vendors appear a different number of times, and here they do. Tested that way
+// this dataset returned p = 0.03 — "vendors differ" — purely because one vendor
+// was scheduled into far fewer comparisons, while that same vendor had the
+// highest win rate of the three. Conditioning on participation gives p = 0.47.
+// The expectations then sum to the number of comparisons, so the statistic is
+// well formed as well as honest.
+function vendorTest(totals) {
+  const active = totals.filter(t => !t.pending);
+  if (active.length < 2) return { kind: "none", p: null, text: "Not enough vendors with data to test." };
+  if (active.length === 2) {
+    const [a] = active;
+    const p = binomTwoSided(a.wins, a.comparisons);
+    return {
+      kind: "binomial", p,
+      text: `Exact two-sided binomial test of ${a.vendor} ${a.wins}–${a.comparisons - a.wins} against a 50/50 null: p = ${p.toFixed(2)}.`
+    };
+  }
+  const stat = active.reduce((acc, t) => {
+    const expected = t.comparisons / 2;
+    return expected > 0 ? acc + Math.pow(t.wins - expected, 2) / expected : acc;
+  }, 0);
+  const df = active.length - 1;
+  const p = chiSqP(stat, df);
+  return {
+    kind: "chisq", p,
+    text: `Chi-square across ${active.length} vendors, each tested against half the comparisons it actually appeared in: χ²(${df}) = ${stat.toFixed(2)}, p = ${p.toFixed(2)}.`
+  };
+}
+
+const RECORDS = buildRecords();
+const STRENGTH = bradleyTerry(COMPARISONS, EVALUATED);
+const VTOTALS = vendorTotals();
+const VTEST = vendorTest(VTOTALS);
+
+for (const r of RECORDS) {
+  r.strength = STRENGTH[r.model];
+  r.oppStrength = r.opponents.length
+    ? r.opponents.reduce((a, m) => a + (STRENGTH[m] || 0), 0) / r.opponents.length
+    : 0;
+}
+
+/* =======================================================================
+   Charts
+   ======================================================================= */
+
+function forestPlot(svgId, items, opts) {
+  const { min, max, parity, log = false, fmt, gutter = 152, rowH = 30, width = 640 } = opts;
+  const svg = document.getElementById(svgId);
+  const padTop = 16, padBottom = 34, padRight = 46;
+  const height = padTop + items.length * rowH + padBottom;
+  const plotW = width - gutter - padRight;
+
+  const project = v => {
+    const t = log
+      ? (Math.log(Math.max(v, min)) - Math.log(min)) / (Math.log(max) - Math.log(min))
+      : (v - min) / (max - min);
+    return gutter + Math.max(0, Math.min(1, t)) * plotW;
+  };
+
+  const ticks = log
+    ? [min, 0.1, 0.5, 1, 2, max].filter((v, i, a) => v >= min && v <= max && a.indexOf(v) === i)
+    : [0, 0.25, 0.5, 0.75, 1].filter(v => v >= min && v <= max);
+
+  const axisY = padTop + items.length * rowH + 6;
+  let m = "";
+
+  for (const t of ticks) {
+    const x = project(t);
+    m += `<line class="grid-line" x1="${x}" y1="${padTop - 6}" x2="${x}" y2="${axisY}"/>`
+       + `<text class="ax-label" x="${x}" y="${axisY + 16}" text-anchor="middle">${fmt(t)}</text>`;
+  }
+
+  const px = project(parity);
+  m += `<line class="parity-line" x1="${px}" y1="${padTop - 10}" x2="${px}" y2="${axisY}"/>`;
+
+  items.forEach((it, i) => {
+    const y = padTop + i * rowH + rowH / 2 - 4;
+    const c = it.color;
+    const x1 = project(it.lo), x2 = project(it.hi), xp = project(it.point);
+    m += `
+      <text class="ax-model" x="${gutter - 12}" y="${y + 4}" text-anchor="end">${esc(it.label)}</text>
+      <line x1="${x1}" y1="${y}" x2="${x2}" y2="${y}" stroke="${c}" stroke-width="3" stroke-linecap="round" opacity="0.42"/>
+      <line x1="${x1}" y1="${y - 5}" x2="${x1}" y2="${y + 5}" stroke="${c}" stroke-width="2" opacity="0.7"/>
+      <line x1="${x2}" y1="${y - 5}" x2="${x2}" y2="${y + 5}" stroke="${c}" stroke-width="2" opacity="0.7"/>
+      <circle cx="${xp}" cy="${y}" r="${it.significant ? 6.5 : 5}" fill="${c}"
+              stroke="${it.significant ? "var(--sig)" : "none"}" stroke-width="${it.significant ? 2.5 : 0}"/>
+      <text class="val-label${it.significant ? "" : " dim"}" x="${width - padRight + 8}" y="${y + 4}">${it.valueText}</text>
+      <title>${esc(it.title)}</title>`;
+  });
+
+  svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+  svg.innerHTML = m;
+}
+
+function legendFor(elId, extra) {
+  const el = document.getElementById(elId);
+  el.innerHTML = allVendors().filter(v => VTOTALS.find(t => t.vendor === v && !t.pending))
+    .map(v => `<span><i style="background:${vendorColor(v)}"></i>${esc(v)}</span>`).join("")
+    + extra;
+}
+
+function renderCharts() {
+  const wrItems = RECORDS.map(r => ({
+    label: r.model,
+    color: vendorColor(r.vendor),
+    point: r.winRate, lo: r.ciLow, hi: r.ciHigh,
+    significant: r.significant,
+    valueText: `${r.wins}/${r.appearances}`,
+    title: `${r.model} — ${r.wins} of ${r.appearances} (${pct(r.winRate)}), 95% CI ${pct(r.ciLow)}–${pct(r.ciHigh)}`
+  }));
+  forestPlot("winRateChart", wrItems, { min: 0, max: 1, parity: 0.5, fmt: v => pct(v) });
+  legendFor("winRateLegend", `<span><span class="dash"></span>50% parity</span><span><i style="background:transparent;border:2px solid var(--sig)"></i>interval excludes parity</span>`);
+
+  const btItems = RECORDS.slice().sort((a, b) => b.strength - a.strength).map(r => {
+    const [lo, hi] = r.btCi;
+    return {
+      label: r.model,
+      color: vendorColor(r.vendor),
+      point: r.strength, lo, hi,
+      significant: !(lo <= 1 && 1 <= hi),
+      valueText: r.strength.toFixed(2),
+      title: `${r.model} — strength ${r.strength.toFixed(2)}, bootstrap 95% CI ${lo.toFixed(2)}–${hi.toFixed(2)}`
+    };
+  });
+  forestPlot("btChart", btItems, { min: 0.02, max: 5, parity: 1, log: true, fmt: v => (v >= 1 ? v.toFixed(0) : v.toFixed(2)) });
+  legendFor("btLegend", `<span><span class="dash"></span>1.0 = average</span><span><i style="background:transparent;border:2px solid var(--sig)"></i>interval excludes parity</span>`);
+}
+
+/* =======================================================================
+   Sections
+   ======================================================================= */
+
+function renderHero() {
+  document.getElementById("eyebrowCount").textContent = COMPARISONS.length;
+  document.getElementById("vendorDots").innerHTML = allVendors()
+    .map(v => `<i style="background:${vendorColor(v)}" title="${esc(v)}"></i>`).join("");
+}
+
+function renderKpis() {
+  const sig = RECORDS.filter(r => r.significant);
+  const widest = RECORDS.reduce((w, r) => Math.max(w, r.ciHigh - r.ciLow), 0);
+  const apps = RECORDS.map(r => r.appearances);
+  const categories = new Set(COMPARISONS.map(r => r.category));
+  const maxPerCat = Math.max(...[...categories].map(c => COMPARISONS.filter(r => r.category === c).length));
+  const active = VTOTALS.filter(t => !t.pending);
+  const pending = VTOTALS.filter(t => t.pending);
+
+  const cards = [
+    {
+      label: "Comparisons", value: COMPARISONS.length,
+      sub: `${EVALUATED.length} models · ${Math.min(...apps)}–${Math.max(...apps)} appearances each`,
+      accent: "var(--accent)"
+    },
+    {
+      label: "Vendors", value: `${active.length}<small> of ${VTOTALS.length}</small>`,
+      sub: pending.length ? `${pending.map(p => p.vendor).join(", ")} registered, no comparisons yet` : "all vendors have data",
+      accent: `linear-gradient(90deg, ${allVendors().map(vendorColor).join(", ")})`
+    },
+    {
+      label: "Vendor split", value: active.map(t => t.wins).join(" – "),
+      sub: `${active.map(t => t.vendor).join(" · ")} — ${VTEST.p === null ? "no test" : `p = ${VTEST.p.toFixed(2)}`}`,
+      accent: `linear-gradient(90deg, ${active.map(t => vendorColor(t.vendor)).join(", ")})`
+    },
+    {
+      label: "Survive significance", value: `${sig.length}<small> of ${RECORDS.length}</small>`,
+      sub: sig.length ? `${sig.map(s => s.model).join(", ")} — the rest overlap parity` : "no model separates from parity",
+      accent: "var(--sig)"
+    },
+    {
+      label: "Widest 95% interval", value: `${Math.round(widest * 100)} pts`,
+      sub: "the honest precision of this design, not a formality",
+      accent: "var(--warn)"
+    },
+    {
+      label: "Category coverage", value: `${categories.size}`,
+      sub: `categories · max ${maxPerCat} comparison${maxPerCat === 1 ? "" : "s"} in any one of them`,
+      accent: "var(--warn)"
     }
+  ];
 
-    function renderMatchups() {
-      const matchupMap = {};
-      promptResults.forEach(row => {
-        const pair = [row.model_a, row.model_b].sort().join(" vs ");
-        if (!matchupMap[pair]) {
-          matchupMap[pair] = { pair, total: 0, winners: {} };
-        }
-        matchupMap[pair].total += 1;
-        matchupMap[pair].winners[row.winner] = (matchupMap[pair].winners[row.winner] || 0) + 1;
-      });
+  document.getElementById("kpis").innerHTML = cards.map(c => `
+    <article class="kpi" style="--kpi-accent:${c.accent}">
+      <h2>${esc(c.label)}</h2>
+      <span class="val">${c.value}</span>
+      <span class="sub">${esc(c.sub)}</span>
+    </article>`).join("");
+}
 
-      const matchups = Object.values(matchupMap)
-        .sort((a, b) => b.total - a.total || a.pair.localeCompare(b.pair));
+function renderHeadline() {
+  const sig = RECORDS.filter(r => r.significant);
+  const btSig = RECORDS.filter(r => !(r.btCi[0] <= 1 && 1 <= r.btCi[1]));
+  const apps = RECORDS.map(r => r.appearances);
+  const named = sig.length
+    ? `<strong>${sig.map(s => `${esc(s.model)} (${s.wins}/${s.appearances})</strong>`).join(", ")}`
+    : "<strong>none of them</strong>";
 
-      matchupGrid.innerHTML = matchups.map(m => {
-        const winnerLine = Object.entries(m.winners)
-          .map(([model, wins]) => `${model}: ${wins}`)
-          .join(" · ");
-        return `
-          <article class="matchup-card">
-            <div class="matchup-title">${m.pair}</div>
-            <div class="muted">Comparisons: ${m.total}</div>
-            <div>${winnerLine}</div>
-          </article>
-        `;
-      }).join("");
+  document.getElementById("headline").innerHTML = `
+    <strong>Read every chart on this page with the sample size in mind.</strong>
+    ${COMPARISONS.length} comparisons across ${RECORDS.length} models means each model appears
+    ${Math.min(...apps)}–${Math.max(...apps)} times. ${VTEST.text}
+    Fitting a Bradley–Terry model, ${btSig.length ? `only ${btSig.map(b => esc(b.model)).join(", ")}` : "no model"}
+    has an interval that excludes parity — every other model overlaps it.
+    The finding this data supports is ${named}; nothing here ranks the rest, and a rerun would
+    likely reshuffle the ordering.`;
+}
+
+function renderVendors() {
+  const maxWins = Math.max(1, ...VTOTALS.map(t => t.wins));
+  document.getElementById("vendorTestHint").textContent =
+    VTEST.p === null ? "" : `${VTEST.kind === "binomial" ? "Exact binomial" : "Chi-square"} p = ${VTEST.p.toFixed(2)}${VTEST.p > 0.05 ? " — not significant" : ""}`;
+
+  document.getElementById("vendorCards").innerHTML = VTOTALS.map(t => {
+    const c = vendorColor(t.vendor), c2 = vendorColor2(t.vendor);
+    const chips = t.models.map(m => {
+      const isEval = EVALUATED.includes(m);
+      return `<span class="chip ${isEval ? "" : "flat"}" style="--vc:${c}">${isEval ? "<i></i>" : ""}${esc(m)}</span>`;
+    }).join("");
+    if (t.pending) {
+      return `<article class="vendor-card pending" style="--vc:${c};--vc2:${c2}">
+        <div class="vname"><i></i>${esc(t.vendor)}</div>
+        <div class="vbig" style="opacity:0.55">—</div>
+        <div class="vsub"><strong>No comparisons run yet.</strong></div>
+        <div class="vmodels">${chips}</div>
+      </article>`;
     }
+    return `<article class="vendor-card" style="--vc:${c};--vc2:${c2}">
+      <div class="vname"><i></i>${esc(t.vendor)}</div>
+      <div class="vbig">${t.wins}<span style="font-size:0.45em;color:var(--muted);font-weight:600"> / ${t.comparisons}</span></div>
+      <div class="vsub">${pct(t.winRate)} win rate · 95% CI ${pct(t.ciLow)}–${pct(t.ciHigh)}</div>
+      <div class="vtrack"><div class="vfill" style="width:${(t.wins / maxWins) * 100}%"></div></div>
+      <div class="vsub">${t.evaluated.length} model${t.evaluated.length === 1 ? "" : "s"} evaluated</div>
+      <div class="vmodels">${chips}</div>
+    </article>`;
+  }).join("");
 
-    function renderTopCards() {
-      const counts = getSummaryCounts(promptResults);
-      const modelRecords = buildModelRecords(promptResults);
-      const topRate = modelRecords.length ? modelRecords[0].winRate : 0;
-      const topModels = modelRecords.filter(row => row.winRate === topRate).map(row => row.model);
+  const crossVendor = COMPARISONS.filter(r => vendorOf(r.model_a) !== vendorOf(r.model_b)).length;
+  document.getElementById("vendorNote").innerHTML =
+    `<strong>${VTEST.text}</strong> ${VTEST.p !== null && VTEST.p > 0.05
+      ? "A split this size is what chance produces routinely at this sample size, so this is not evidence that any vendor is better at security tasks."
+      : ""}
+     ${crossVendor} of ${COMPARISONS.length} comparisons are cross-vendor
+     ${crossVendor === COMPARISONS.length
+        ? "— there are no same-vendor matchups at all, so nothing here can rank two models from the same maker against each other."
+        : "."}`;
+}
 
-      document.getElementById("totalPrompts").textContent = promptResults.length;
-      document.getElementById("googleCount").textContent = counts.Google;
-      document.getElementById("openaiCount").textContent = counts.OpenAI;
-      document.getElementById("modelsCompared").textContent = modelRecords.length;
-      document.getElementById("topModel").textContent = topModels.join(", ");
-      document.getElementById("topModelWins").textContent =
-        `${(topRate * 100).toFixed(0)}% win rate — not separated from the field at n=20`;
+function renderModelTable() {
+  document.getElementById("modelTableBody").innerHTML = RECORDS.map(r => {
+    const c = vendorColor(r.vendor);
+    const [lo, hi] = r.btCi;
+    const btSig = !(lo <= 1 && 1 <= hi);
+    const verdict = r.significant || btSig
+      ? `<span class="chip sig">separates from parity</span>`
+      : `<span class="chip flat">indistinguishable</span>`;
+    return `<tr class="${r.significant || btSig ? "is-sig" : ""}">
+      <td class="model-name"><strong>${esc(r.model)}</strong></td>
+      <td><span class="chip" style="--vc:${c}"><i></i>${esc(r.vendor)}</span></td>
+      <td><span class="chip tier">${esc(r.tier)}</span></td>
+      <td class="num">${r.appearances}</td>
+      <td class="num">${r.wins}</td>
+      <td class="num">${r.losses}</td>
+      <td class="num">${pct(r.winRate)}<div class="mini-bar" style="--vc:${c}"><span style="width:${r.winRate * 100}%"></span></div></td>
+      <td style="color:var(--muted)">${pct(r.ciLow)}–${pct(r.ciHigh)}</td>
+      <td class="num">${r.strength.toFixed(2)}<div style="color:var(--faint);font-size:0.78em">${lo.toFixed(2)}–${hi.toFixed(2)}</div></td>
+      <td class="num" title="Mean Bradley-Terry strength of the opponents this model faced">${r.oppStrength.toFixed(2)}</td>
+      <td>${verdict}</td>
+    </tr>`;
+  }).join("");
+}
 
-      drawBarChart("vendorChart", [
-        { label: "Google", value: counts.Google, color: "#16a34a" },
-        { label: "OpenAI", value: counts.OpenAI, color: "#2563eb" }
-      ], { height: 260, gap: 120 });
+function renderPower() {
+  document.getElementById("powerTableBody").innerHTML = RECORDS
+    .slice().sort((a, b) => a.bestP - b.bestP || b.appearances - a.appearances)
+    .map(r => {
+      const ok = r.bestP <= 0.05;
+      return `<tr class="${ok ? "" : "is-sig"}">
+        <td class="model-name">${esc(r.model)}</td>
+        <td class="num">${r.appearances}</td>
+        <td class="num">${r.bestP.toFixed(3)}</td>
+        <td>${ok
+          ? `<span class="verdict">yes — a clean ${r.appearances}–0 or 0–${r.appearances} would reach p ≤ 0.05</span>`
+          : `<span class="verdict no">no — even a perfect ${r.appearances}–0 record gives p = ${r.bestP.toFixed(2)}</span>`}</td>
+      </tr>`;
+    }).join("");
 
-      const modelSeries = modelRecords.map(row => ({
-        label: `${row.model.replace("Gemini-", "G-")} (${row.wins}/${row.appearances})`,
-        value: row.wins,
-        color: vendorOf(row.model) === "Google" ? "#16a34a" : "#2563eb"
-      }));
+  // Pairing matrix
+  const models = RECORDS.map(r => r.model);
+  const counts = {};
+  for (const r of COMPARISONS) {
+    const k = [r.model_a, r.model_b].sort().join("|");
+    counts[k] = (counts[k] || 0) + 1;
+  }
+  const maxCount = Math.max(1, ...Object.values(counts));
+  const short = m => m.replace("Gemini-", "G-").replace("Claude-", "C-").replace("GPT-", "GPT-");
 
-      drawBarChart("modelChart", modelSeries, { height: 300, gap: 18 });
+  let html = `<table class="matrix"><thead><tr><th></th>${models
+    .map(m => `<th class="colhead" title="${esc(m)}">${esc(short(m))}</th>`).join("")}</tr></thead><tbody>`;
+  for (const a of models) {
+    html += `<tr><th class="rowhead" title="${esc(a)}">${esc(short(a))}</th>`;
+    for (const b of models) {
+      if (a === b) { html += `<td><div class="cell self">·</div></td>`; continue; }
+      const n = counts[[a, b].sort().join("|")] || 0;
+      if (!n) { html += `<td><div class="cell" title="${esc(a)} never faced ${esc(b)}">0</div></td>`; continue; }
+      const alpha = 0.35 + 0.65 * (n / maxCount);
+      html += `<td><div class="cell hit" style="background:color-mix(in srgb, var(--accent) ${Math.round(alpha * 100)}%, var(--panel))"
+        title="${esc(a)} vs ${esc(b)}: ${n} comparison${n === 1 ? "" : "s"}">${n}</div></td>`;
     }
+    html += `</tr>`;
+  }
+  document.getElementById("matrixWrap").innerHTML = html + `</tbody></table>`;
 
-    function init() {
-      renderTopCards();
-      renderFilters();
-      renderTable();
-      renderModelSpotlight();
-      renderMatchups();
+  const possiblePairs = (models.length * (models.length - 1)) / 2;
+  const seenPairs = Object.keys(counts).length;
+  document.getElementById("matrixLegend").innerHTML =
+    `<span>${seenPairs} of ${possiblePairs} possible pairings occurred (${pct(seenPairs / possiblePairs)})</span>`;
 
-      searchInput.addEventListener("input", renderTable);
-      sortSelect.addEventListener("change", renderTable);
-    }
+  // Category coverage
+  const cats = [...new Set(COMPARISONS.map(r => r.category))];
+  const perCat = cats.map(c => ({ c, n: COMPARISONS.filter(r => r.category === c).length }));
+  const maxCat = Math.max(...perCat.map(p => p.n));
+  document.getElementById("covStrip").innerHTML = perCat
+    .map(p => `<span title="${esc(p.c)}: ${p.n} comparison${p.n === 1 ? "" : "s"}"
+      style="background:color-mix(in srgb, var(--accent) ${Math.round((p.n / maxCat) * 55 + 18)}%, var(--panel))"></span>`).join("");
+  document.getElementById("covCaption").textContent =
+    `${cats.length} categories, ${COMPARISONS.length} comparisons — a mean of ${(COMPARISONS.length / cats.length).toFixed(1)} per category, with a maximum of ${maxCat}. `
+    + (maxCat < 2
+      ? "One observation per category means no per-category claim is testable at all: the task-specific hypothesis this project set out to explore is not answered by this data, only framed by it."
+      : "");
 
-    init();
-  </script>
+  const unfalsifiable = RECORDS.filter(r => r.bestP > 0.05);
+  document.getElementById("powerNote").innerHTML =
+    `<strong>${unfalsifiable.length} of ${RECORDS.length} models could not have produced a significant result no matter how they performed.</strong> `
+    + (unfalsifiable.length
+      ? `${unfalsifiable.map(r => `${esc(r.model)} (${r.appearances} appearances)`).join(", ")}
+         ${unfalsifiable.length === 1 ? "was" : "were"} drawn too few times for any record to clear p ≤ 0.05.
+         That is a property of the schedule, decided before a single response was read — not a statement about the models.`
+      : "Every model was drawn often enough that some record could have cleared p ≤ 0.05.");
+}
+
+/* ------------------------------ results table ---------------------------- */
+
+const CATEGORIES = ["All", ...[...new Set(COMPARISONS.map(r => r.category))].sort()];
+let activeCategory = "All";
+let activeVendor = "All";
+
+const el = {
+  body: document.getElementById("resultsBody"),
+  filters: document.getElementById("filters"),
+  vendorFilters: document.getElementById("vendorFilters"),
+  count: document.getElementById("resultCount"),
+  search: document.getElementById("searchInput"),
+  sort: document.getElementById("sortSelect"),
+  summary: document.getElementById("categorySummary"),
+  expandAll: document.getElementById("expandAll")
+};
+
+function renderFilters() {
+  el.filters.innerHTML = CATEGORIES.map(c =>
+    `<button class="filter-btn ${activeCategory === c ? "active" : ""}" data-cat="${esc(c)}" type="button">${esc(c)}</button>`).join("");
+  el.filters.querySelectorAll("button").forEach(b =>
+    b.addEventListener("click", () => { activeCategory = b.dataset.cat; renderFilters(); renderResults(); }));
+
+  const vendors = ["All", ...allVendors().filter(v => VTOTALS.find(t => t.vendor === v && !t.pending))];
+  el.vendorFilters.innerHTML = vendors.map(v => {
+    const c = v === "All" ? "var(--text)" : vendorColor(v);
+    return `<button class="filter-btn vendor ${activeVendor === v ? "active" : ""}" style="--vc:${c}" data-vendor="${esc(v)}" type="button">
+      ${v === "All" ? "All" : `<span style="color:${c};margin-right:5px">●</span>${esc(v)}`}</button>`;
+  }).join("");
+  el.vendorFilters.querySelectorAll("button").forEach(b =>
+    b.addEventListener("click", () => { activeVendor = b.dataset.vendor; renderFilters(); renderResults(); }));
+}
+
+function compareRows(mode, a, b) {
+  const dir = mode.endsWith("_desc") ? -1 : 1;
+  const key = mode.split("_")[0];
+  if (key === "prompt") return (a.prompt_id - b.prompt_id) * dir;
+  if (key === "winner") return a.winner.localeCompare(b.winner) * dir;
+  if (key === "vendor") return vendorOf(a.winner).localeCompare(vendorOf(b.winner)) * dir;
+  if (key === "category") return a.category.localeCompare(b.category) * dir;
+  return 0;
+}
+
+function filteredRows() {
+  const q = el.search.value.trim().toLowerCase();
+  let rows = COMPARISONS.filter(r =>
+    (activeCategory === "All" || r.category === activeCategory) &&
+    (activeVendor === "All" || vendorOf(r.winner) === activeVendor));
+  if (q) {
+    rows = rows.filter(r => [r.category, r.winner, r.model_a, r.model_b, vendorOf(r.winner), r.prompt_text, r.rationale]
+      .join(" ").toLowerCase().includes(q));
+  }
+  return rows.sort((a, b) => compareRows(el.sort.value, a, b));
+}
+
+function renderResults() {
+  const rows = filteredRows();
+  if (!rows.length) {
+    el.body.innerHTML = `<tr><td colspan="5" class="empty">Nothing matched that filter or search.</td></tr>`;
+  } else {
+    el.body.innerHTML = rows.map(r => {
+      const loser = r.model_a === r.winner ? r.model_b : r.model_a;
+      const wv = vendorOf(r.winner), lv = vendorOf(loser);
+      return `<tr>
+        <td class="num" style="color:var(--faint)">${r.prompt_id}</td>
+        <td>${esc(r.category)}</td>
+        <td class="matchup"><b>${esc(r.winner)}</b><br><span class="beat">beat</span> <s>${esc(loser)}</s></td>
+        <td>
+          <span class="chip" style="--vc:${vendorColor(wv)}"><i></i>${esc(wv)}</span>
+          <div style="color:var(--faint);font-size:0.76rem;margin-top:6px">over ${esc(lv)}</div>
+        </td>
+        <td style="max-width:460px">
+          ${esc(r.rationale)}
+          <details class="disc"><summary>Show the prompt</summary>
+            <div class="body"><span class="q">${esc(r.prompt_text)}</span></div>
+          </details>
+        </td>
+      </tr>`;
+    }).join("");
+  }
+
+  const bits = [];
+  if (activeCategory !== "All") bits.push(`category “${activeCategory}”`);
+  if (activeVendor !== "All") bits.push(`won by ${activeVendor}`);
+  if (el.search.value.trim()) bits.push(`matching “${el.search.value.trim()}”`);
+  el.summary.textContent = bits.length ? `Showing comparisons ${bits.join(", ")}.` : "Showing all comparisons.";
+  el.count.textContent = `(${rows.length} of ${COMPARISONS.length})`;
+}
+
+function renderMatchups() {
+  const map = {};
+  for (const r of COMPARISONS) {
+    const key = [r.model_a, r.model_b].sort().join(" | ");
+    if (!map[key]) map[key] = { models: key.split(" | "), total: 0, wins: {} };
+    map[key].total++;
+    map[key].wins[r.winner] = (map[key].wins[r.winner] || 0) + 1;
+  }
+  const list = Object.values(map).sort((a, b) => b.total - a.total || a.models[0].localeCompare(b.models[0]));
+
+  document.getElementById("matchupGrid").innerHTML = list.map(m => {
+    const [x, y] = m.models;
+    const wx = m.wins[x] || 0, wy = m.wins[y] || 0;
+    const cx = vendorColor(vendorOf(x)), cy = vendorColor(vendorOf(y));
+    const lead = wx === wy ? null : (wx > wy ? x : y);
+    return `<article class="chart-card" style="padding:14px">
+      <div style="display:flex;justify-content:space-between;gap:10px;align-items:baseline">
+        <span class="chip" style="--vc:${cx}"><i></i>${esc(x)}</span>
+        <strong style="font-size:1.1rem;letter-spacing:-0.5px">${wx}–${wy}</strong>
+        <span class="chip" style="--vc:${cy}"><i></i>${esc(y)}</span>
+      </div>
+      <div style="height:7px;border-radius:4px;overflow:hidden;display:flex;margin:12px 0 9px;background:var(--raised)">
+        <span style="flex:${wx || 0.001};background:${cx}"></span>
+        <span style="flex:${wy || 0.001};background:${cy}"></span>
+      </div>
+      <div style="color:var(--faint);font-size:0.78rem">
+        ${m.total} comparison${m.total === 1 ? "" : "s"}${lead ? ` · ${esc(lead)} ahead` : " · tied"}
+        ${m.total === 1 ? " — a single result, indistinguishable from noise" : ""}
+      </div>
+    </article>`;
+  }).join("");
+}
+
+/* ------------------------------- theme ---------------------------------- */
+
+function initTheme() {
+  const stored = localStorage.getItem("llmsec-theme");
+  const prefersLight = window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches;
+  document.documentElement.setAttribute("data-theme", stored || (prefersLight ? "light" : "dark"));
+
+  document.getElementById("themeToggle").addEventListener("click", () => {
+    const next = document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark";
+    document.documentElement.setAttribute("data-theme", next);
+    try { localStorage.setItem("llmsec-theme", next); } catch (e) { /* private mode */ }
+    // Charts bake in resolved colours, so they have to be redrawn on a theme change.
+    renderHero(); renderCharts(); renderVendors(); renderModelTable(); renderPower();
+    renderFilters(); renderResults(); renderMatchups();
+  });
+}
+
+/* -------------------------------- init ---------------------------------- */
+
+function init() {
+  initTheme();
+
+  // Provisional intervals so the first paint is complete, then the real
+  // bootstrap runs off the critical path and the charts are redrawn.
+  for (const r of RECORDS) r.btCi = [r.strength, r.strength];
+
+  renderHero();
+  renderKpis();
+  renderVendors();
+  renderModelTable();
+  renderPower();
+  renderFilters();
+  renderResults();
+  renderMatchups();
+  renderCharts();
+  renderHeadline();
+
+  el.search.addEventListener("input", renderResults);
+  el.sort.addEventListener("change", renderResults);
+  el.expandAll.addEventListener("click", () => {
+    const details = el.body.querySelectorAll("details");
+    const open = [...details].some(d => !d.open);
+    details.forEach(d => { d.open = open; });
+    el.expandAll.textContent = open ? "Collapse all" : "Expand all";
+  });
+
+  setTimeout(() => {
+    const ci = bootstrapBT(COMPARISONS, EVALUATED);
+    for (const r of RECORDS) r.btCi = ci[r.model];
+    renderCharts();
+    renderModelTable();
+    renderKpis();
+    renderHeadline();
+  }, 30);
+}
+
+init();
+</script>
 </body>
 </html>

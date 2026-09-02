@@ -16,8 +16,9 @@ import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from analysis.statistics import (binomial_two_sided_p, bradley_terry, load_results,
-                                 tally, vendor_split, wilson_interval)
+from analysis.statistics import (binomial_two_sided_p, bradley_terry,
+                                 build_vendor_lookup, load_results, tally,
+                                 vendor_split, wilson_interval)
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MODEL_WINS = os.path.join(ROOT, "data", "model_wins.csv")
@@ -72,11 +73,30 @@ class TestSourceDataIntegrity(unittest.TestCase):
             self.assertEqual(r["loser"], expected,
                              f"prompt {r['prompt_id']}: loser column disagrees with the pairing")
 
-    def test_vendor_matches_the_winning_model_name(self):
-        for r in load_results():
-            expected = "Google" if r["winner"].startswith("Gemini") else "OpenAI"
-            self.assertEqual(r["winner_vendor"], expected,
-                             f"prompt {r['prompt_id']}: winner_vendor does not match the winner")
+    def test_vendor_matches_the_registry(self):
+        """winner_vendor must agree with data/models.csv, not with a name prefix.
+
+        This test used to read `"Google" if winner.startswith("Gemini") else
+        "OpenAI"`, which is the same heuristic the dashboard used and has the same
+        defect: it assigns every model from any third vendor to OpenAI. It began
+        failing the moment a Claude model won a comparison — correctly, because
+        the assertion was wrong, not the data.
+        """
+        rows = load_results()
+        vendor_of = build_vendor_lookup(rows)
+        for r in rows:
+            self.assertEqual(
+                r["winner_vendor"], vendor_of(r["winner"]),
+                f"prompt {r['prompt_id']}: winner_vendor disagrees with data/models.csv")
+
+    def test_every_model_is_registered(self):
+        rows = load_results()
+        vendor_of = build_vendor_lookup(rows)
+        for r in rows:
+            for field in ("model_a", "model_b"):
+                self.assertNotEqual(
+                    vendor_of(r[field]), "Unknown",
+                    f"prompt {r['prompt_id']}: {r[field]} is missing from data/models.csv")
 
     def test_wins_and_losses_balance(self):
         stats = tally(load_results())

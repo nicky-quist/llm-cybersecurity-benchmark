@@ -1,0 +1,14 @@
+model,vendor,family,tier,status
+Gemini-2.5-Pro,Google,Gemini,frontier,evaluated
+Gemini-3.1-Pro-Preview,Google,Gemini,frontier,evaluated
+Gemini-2.5-Flash-Lite,Google,Gemini,lite,evaluated
+Gemini-3-Flash-Preview,Google,Gemini,lite,evaluated
+Gemini-2.5-Flash,Google,Gemini,lite,evaluated
+Gemini-3.6-Flash,Google,Gemini,lite,evaluated
+GPT-5.2,OpenAI,GPT,frontier,evaluated
+GPT-5.2-High,OpenAI,GPT,frontier,evaluated
+GPT-4o,OpenAI,GPT,mid,evaluated
+GPT-4.1-Mini,OpenAI,GPT,mid,evaluated
+Claude-Opus-5,Anthropic,Claude,frontier,evaluated
+Claude-Sonnet-5,Anthropic,Claude,frontier,planned
+Claude-Haiku-4.5,Anthropic,Claude,lite,planned

@@ -1,0 +1,38 @@
+pairing_id,tier,prompt_id,category,model_a,model_b,cross_vendor
+1,frontier,1,Cybersecurity knowledge,GPT-5.2,GPT-5.2-High,no
+2,frontier,2,SOC detection,Gemini-3.1-Pro-Preview,GPT-5.2,yes
+3,frontier,3,Incident investigation,Gemini-3.1-Pro-Preview,Gemini-2.5-Pro,no
+4,mid,4,Detection engineering,GPT-4o,GPT-4.1-Mini,no
+5,frontier,5,Python coding,Claude-Opus-5,Claude-Sonnet-5,no
+6,lite,6,Threat intelligence,Claude-Haiku-4.5,Gemini-3-Flash-Preview,yes
+7,frontier,7,AI for cybersecurity,GPT-5.2,Gemini-2.5-Pro,yes
+8,frontier,8,Reasoning / planning,GPT-5.2-High,Claude-Opus-5,yes
+9,frontier,9,Hallucination / fact-checking,Gemini-2.5-Pro,Claude-Opus-5,yes
+10,frontier,10,AI operations / SOC strategy,GPT-5.2,Claude-Sonnet-5,yes
+11,lite,11,Malware analysis,Gemini-2.5-Flash-Lite,Gemini-3-Flash-Preview,no
+12,frontier,12,Cloud security,Gemini-3.1-Pro-Preview,Claude-Opus-5,yes
+13,frontier,13,SIEM engineering,Claude-Sonnet-5,GPT-5.2-High,yes
+14,frontier,14,Threat hunting,Gemini-2.5-Pro,Claude-Sonnet-5,yes
+15,lite,15,Digital forensics,Gemini-2.5-Flash-Lite,Claude-Haiku-4.5,yes
+16,frontier,16,Network security,Claude-Sonnet-5,Gemini-3.1-Pro-Preview,yes
+17,frontier,17,Identity security,GPT-5.2,Claude-Opus-5,yes
+18,frontier,18,Detection validation,GPT-5.2-High,Gemini-3.1-Pro-Preview,yes
+19,frontier,19,Incident communications,Gemini-2.5-Pro,GPT-5.2-High,yes
+20,mid/lite,20,Security automation,Claude-Haiku-4.5,GPT-4.1-Mini,yes
+21,mid/lite,1,Cybersecurity knowledge,GPT-4o,Gemini-2.5-Flash-Lite,yes
+22,mid/lite,2,SOC detection,GPT-4.1-Mini,Gemini-3-Flash-Preview,yes
+23,mid/lite,3,Incident investigation,Claude-Haiku-4.5,GPT-4o,yes
+24,mid/lite,4,Detection engineering,GPT-4.1-Mini,Gemini-2.5-Flash-Lite,yes
+25,mid/lite,5,Python coding,GPT-4o,Gemini-3-Flash-Preview,yes
+26,lite/mid,6,Threat intelligence,GPT-4.1-Mini,Claude-Haiku-4.5,yes
+27,mid/lite,7,AI for cybersecurity,GPT-4o,Gemini-2.5-Flash-Lite,yes
+28,lite,8,Reasoning / planning,Claude-Haiku-4.5,Gemini-3-Flash-Preview,yes
+29,frontier/mid,9,Hallucination / fact-checking,Claude-Opus-5,GPT-4.1-Mini,yes
+30,frontier/mid,10,AI operations / SOC strategy,GPT-4o,Claude-Sonnet-5,yes
+31,frontier/lite,11,Malware analysis,Gemini-2.5-Flash-Lite,GPT-5.2,yes
+32,frontier,12,Cloud security,GPT-5.2-High,Gemini-2.5-Pro,yes
+33,lite/frontier,13,SIEM engineering,Gemini-3-Flash-Preview,Gemini-3.1-Pro-Preview,no
+34,as-served,17,Identity security,GPT-5.2,GPT-4.1-Mini,no
+35,as-served,12,Cloud security,Gemini-3.1-Pro-Preview,GPT-4.1-Mini,yes
+36,as-served,9,Hallucination / fact-checking,Gemini-2.5-Flash,GPT-4.1-Mini,yes
+37,as-served,8,Reasoning / planning,GPT-5.2-High,Gemini-3.6-Flash,yes
