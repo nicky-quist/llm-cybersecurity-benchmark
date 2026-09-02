@@ -120,6 +120,33 @@ participation.
 
 Anthropic's 4 appearances constrain almost nothing either way. Do not read 75% as a result.
 
+### By tier
+
+The scoreboard also groups models by **capability tier**, which cuts across
+makers in a way the vendor split does not. 22 of the 28 comparisons cross a tier
+boundary.
+
+| Tier | Appeared in | Won | Win rate | 95% CI |
+|---|---:|---:|---:|---|
+| mid | 17 | 5 | 29% | 13%–53% |
+| frontier | 15 | 12 | 80% | 55%–93% |
+| lite | 12 | 5 | 42% | 19%–68% |
+
+Chi-square, conditioned on participation: χ²(2) = 4.31, **p = 0.116**. Not
+significant, but it is the closest thing in this dataset to a second finding, and
+it is the direction you would expect: frontier models win most of their
+cross-tier matchups. Worth noting that "mid" here is GPT-4o and GPT-4.1-Mini, and
+GPT-4o's 0–6 is doing most of the work in that row — so this is as much a
+statement about one model as about a tier.
+
+### By family
+
+Family is 1:1 with vendor in the current registry (Google/Gemini,
+OpenAI/GPT, Anthropic/Claude), so this view reports the same numbers as the
+vendor split above under different labels. It would diverge the moment a vendor
+ships a second family. The dashboard exposes all three groupings — **Vendor ·
+Family · Tier** — as a toggle on the scoreboard.
+
 ![Bradley-Terry strengths with bootstrap intervals](visualizations/bradley_terry.png)
 
 ### Bradley-Terry strengths
@@ -279,6 +306,9 @@ green, Anthropic clay — so a model's maker is legible on every chart, chip, fi
   how many times it was drawn, which is how you find out that six of eight were
   unfalsifiable by construction
 - **Pairing matrix** showing which models never met, and a **category coverage strip**
+- **Scoreboard grouping toggle** — Vendor, Family or Tier. Each recomputes wins,
+  participations, intervals and the chi-square live; tier gets its own neutral palette
+  since a tier spans makers
 - **Prompt-level results** filterable by vendor and category, searchable, sortable, with
   the full prompt text and judging rationale for every comparison
 - **Head-to-head cards** for every pairing that occurred

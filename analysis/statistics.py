@@ -205,6 +205,21 @@ def _gamma_q(a, x):
     return math.exp(-x + a * math.log(x) - _gammaln(a)) * h
 
 
+def build_attribute_lookup(attribute, rows=None, path=None):
+    """Model -> vendor, family or tier, from data/models.csv.
+
+    The scoreboard can be grouped three ways. Vendor and family are 1:1 in the
+    current registry, so those agree; tier (frontier / mid / lite) cuts across
+    makers and is the grouping that carries information the vendor view does not.
+    """
+    registry = {}
+    models_path = path or os.path.join(DATA, "models.csv")
+    if os.path.exists(models_path):
+        with open(models_path, encoding="utf-8-sig") as f:
+            registry = {r["model"]: r[attribute] for r in csv.DictReader(f)}
+    return lambda model: registry.get(model, "Unknown")
+
+
 def build_vendor_lookup(rows, path=None):
     """Model -> vendor, from data/models.csv.
 
@@ -367,6 +382,24 @@ def report(rows):
     if thin:
         lines.append(f"Note: {', '.join(sorted(thin))} appeared in fewer than 10 "
                      f"comparisons; that win rate is barely constrained either way.")
+
+    for attribute, noun in (("tier", "tier"), ("family", "family")):
+        lookup = build_attribute_lookup(attribute)
+        if len({lookup(m) for r in rows for m in (r["model_a"], r["model_b"])}) < 2:
+            continue
+        parts, wins_by, cross_n = vendor_participation(rows, lookup)
+        if not parts:
+            continue
+        test = vendor_test(parts, wins_by)
+        lines.append(f"\nBy {noun} — {cross_n} of {len(rows)} comparisons cross a "
+                     f"{noun} boundary")
+        lines.append("-" * 66)
+        lines.append(f"{noun:<16}{'appeared':>10}{'won':>6}{'rate':>8}   95% CI")
+        for group in sorted(parts, key=lambda g: -parts[g]):
+            n, w = parts[group], wins_by[group]
+            lo, hi = wilson_interval(w, n)
+            lines.append(f"{group:<16}{n:>10}{w:>6}{w / n:>8.0%}   [{lo:.0%}, {hi:.0%}]")
+        lines.append(f"\n{test['text'].replace('vendors', noun + 's')}")
 
     strengths = bradley_terry(rows)
     intervals = bootstrap_bradley_terry(rows)

@@ -30,6 +30,15 @@
     --v-Anthropic-2:   #E8A87C;
     --v-Anthropic-soft:rgba(217, 119, 87, 0.13);
 
+    /* Tier is a cross-vendor grouping, so it gets its own neutral ramp rather
+       than borrowing a brand hue that would imply a maker. */
+    --t-frontier:      #a78bfa;
+    --t-frontier-2:    #7c5cf0;
+    --t-mid:           #38bdf8;
+    --t-mid-2:         #0ea5e9;
+    --t-lite:          #5eead4;
+    --t-lite-2:        #2dd4bf;
+
     --bg:        #070b14;
     --bg-2:      #0a1120;
     --panel:     #0e1626;
@@ -446,7 +455,8 @@
 
   <section class="panel" id="vendors">
     <header>
-      <h3>Vendor scoreboard</h3>
+      <h3 id="scoreboardTitle">Vendor scoreboard</h3>
+      <span class="filters" id="groupToggle" role="group" aria-label="Group models by"></span>
       <span class="hint" id="vendorTestHint"></span>
     </header>
     <div class="panel-body">
@@ -733,6 +743,56 @@ function vendorColor2(vendor) {
   const v = getComputedStyle(document.documentElement).getPropertyValue(`--v-${vendor}-2`).trim();
   return v || vendorColor(vendor);
 }
+// The scoreboard can group by vendor (who makes it), family (the product line)
+// or tier (capability class, which cuts across makers). Vendor and family are
+// 1:1 in the current registry — Google/Gemini, OpenAI/GPT, Anthropic/Claude —
+// so those two views agree today and would diverge the moment a vendor ships a
+// second family. Tier is the view that adds information now.
+const GROUPINGS = {
+  vendor: { label: "Vendor", key: m => m.vendor },
+  family: { label: "Family", key: m => m.family },
+  tier:   { label: "Tier",   key: m => m.tier }
+};
+const TIER_ORDER = ["frontier", "mid", "lite"];
+let activeGrouping = "vendor";
+
+function groupOf(model, dim = activeGrouping) {
+  const entry = MODEL_INDEX[model];
+  return entry ? (GROUPINGS[dim].key(entry) || "Unknown") : "Unknown";
+}
+
+// Family borrows its vendor's brand colour, so a Gemini card stays Google blue.
+// Tier uses the neutral ramp, because a tier spans makers.
+function groupColor(group, dim = activeGrouping, second = false) {
+  const suffix = second ? "-2" : "";
+  if (dim === "tier") {
+    const v = getComputedStyle(document.documentElement)
+      .getPropertyValue(`--t-${group}${suffix}`).trim();
+    return v || getComputedStyle(document.documentElement).getPropertyValue("--faint").trim();
+  }
+  const owner = dim === "vendor" ? group
+    : (MODELS.find(m => m.family === group) || {}).vendor;
+  return second ? vendorColor2(owner) : vendorColor(owner);
+}
+
+function allGroups(dim = activeGrouping) {
+  const seen = [...new Set(MODELS.map(m => GROUPINGS[dim].key(m)).filter(Boolean))];
+  if (dim === "tier") {
+    return seen.sort((a, b) => {
+      const ia = TIER_ORDER.indexOf(a), ib = TIER_ORDER.indexOf(b);
+      return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib) || a.localeCompare(b);
+    });
+  }
+  // A family inherits its vendor's position, so the Gemini/GPT/Claude order
+  // matches the Google/OpenAI/Anthropic one instead of going alphabetical.
+  const rank = g => {
+    const vendor = dim === "vendor" ? g : (MODELS.find(m => m.family === g) || {}).vendor;
+    const i = VENDOR_ORDER.indexOf(vendor);
+    return i < 0 ? 99 : i;
+  };
+  return seen.sort((a, b) => rank(a) - rank(b) || a.localeCompare(b));
+}
+
 function allVendors() {
   const seen = [...new Set(MODELS.map(m => m.vendor))];
   return seen.sort((a, b) => {
@@ -927,23 +987,25 @@ function buildRecords() {
   }).sort((a, b) => b.winRate - a.winRate || b.appearances - a.appearances || a.model.localeCompare(b.model));
 }
 
-function vendorTotals() {
+function vendorTotals(dim = activeGrouping) {
   const totals = {};
-  for (const v of allVendors()) {
+  for (const v of allGroups(dim)) {
     totals[v] = {
       vendor: v, wins: 0, comparisons: 0,
-      models: MODELS.filter(m => m.vendor === v).map(m => m.model),
-      evaluated: MODELS.filter(m => m.vendor === v && EVALUATED.includes(m.model)).map(m => m.model)
+      models: MODELS.filter(m => GROUPINGS[dim].key(m) === v).map(m => m.model),
+      evaluated: MODELS.filter(m => GROUPINGS[dim].key(m) === v && EVALUATED.includes(m.model)).map(m => m.model)
     };
   }
-  // Same-vendor comparisons are excluded: one of the two models wins by
-  // construction, so they say nothing about which vendor is better.
+  // Within-group comparisons are excluded: one of the two models wins by
+  // construction, so they say nothing about which group is better. For tier
+  // this matters more than for vendor — frontier-vs-frontier is most of the
+  // schedule, so the tier view runs on a much smaller subset.
   for (const r of COMPARISONS) {
-    const va = vendorOf(r.model_a), vb = vendorOf(r.model_b);
+    const va = groupOf(r.model_a, dim), vb = groupOf(r.model_b, dim);
     if (va === vb) continue;
     if (totals[va]) totals[va].comparisons++;
     if (totals[vb]) totals[vb].comparisons++;
-    if (totals[vendorOf(r.winner)]) totals[vendorOf(r.winner)].wins++;
+    if (totals[groupOf(r.winner, dim)]) totals[groupOf(r.winner, dim)].wins++;
   }
   for (const t of Object.values(totals)) {
     const [lo, hi] = wilson(t.wins, t.comparisons);
@@ -981,16 +1043,17 @@ function vendorTest(totals) {
   }, 0);
   const df = active.length - 1;
   const p = chiSqP(stat, df);
+  const noun = { vendor: "vendors", family: "families", tier: "tiers" }[activeGrouping] || "groups";
   return {
     kind: "chisq", p,
-    text: `Chi-square across ${active.length} vendors, each tested against half the comparisons it actually appeared in: χ²(${df}) = ${stat.toFixed(2)}, p = ${p.toFixed(2)}.`
+    text: `Chi-square across ${active.length} ${noun}, each tested against half the comparisons it actually appeared in: χ²(${df}) = ${stat.toFixed(2)}, p = ${p.toFixed(2)}.`
   };
 }
 
 const RECORDS = buildRecords();
 const STRENGTH = bradleyTerry(COMPARISONS, EVALUATED);
-const VTOTALS = vendorTotals();
-const VTEST = vendorTest(VTOTALS);
+let VTOTALS = vendorTotals();
+let VTEST = vendorTest(VTOTALS);
 
 for (const r of RECORDS) {
   r.strength = STRENGTH[r.model];
@@ -1164,13 +1227,30 @@ function renderHeadline() {
     likely reshuffle the ordering.`;
 }
 
+function renderGroupToggle() {
+  document.getElementById("groupToggle").innerHTML = Object.entries(GROUPINGS)
+    .map(([k, g]) => `<button class="filter-btn ${activeGrouping === k ? "active" : ""}"
+      data-dim="${k}" type="button">${g.label}</button>`).join("");
+  document.getElementById("groupToggle").querySelectorAll("button")
+    .forEach(b => b.addEventListener("click", () => {
+      activeGrouping = b.dataset.dim;
+      VTOTALS = vendorTotals();
+      VTEST = vendorTest(VTOTALS);
+      renderGroupToggle();
+      renderVendors();
+    }));
+}
+
 function renderVendors() {
+  const dim = activeGrouping;
   const maxWins = Math.max(1, ...VTOTALS.map(t => t.wins));
+  document.getElementById("scoreboardTitle").textContent =
+    `${GROUPINGS[dim].label} scoreboard`;
   document.getElementById("vendorTestHint").textContent =
     VTEST.p === null ? "" : `${VTEST.kind === "binomial" ? "Exact binomial" : "Chi-square"} p = ${VTEST.p.toFixed(2)}${VTEST.p > 0.05 ? " — not significant" : ""}`;
 
   document.getElementById("vendorCards").innerHTML = VTOTALS.map(t => {
-    const c = vendorColor(t.vendor), c2 = vendorColor2(t.vendor);
+    const c = groupColor(t.vendor, dim), c2 = groupColor(t.vendor, dim, true);
     const chips = t.models.map(m => {
       const isEval = EVALUATED.includes(m);
       return `<span class="chip ${isEval ? "" : "flat"}" style="--vc:${c}">${isEval ? "<i></i>" : ""}${esc(m)}</span>`;
@@ -1193,15 +1273,18 @@ function renderVendors() {
     </article>`;
   }).join("");
 
-  const crossVendor = COMPARISONS.filter(r => vendorOf(r.model_a) !== vendorOf(r.model_b)).length;
+  const crossVendor = COMPARISONS.filter(r => groupOf(r.model_a, dim) !== groupOf(r.model_b, dim)).length;
   document.getElementById("vendorNote").innerHTML =
     `<strong>${VTEST.text}</strong> ${VTEST.p !== null && VTEST.p > 0.05
-      ? "A split this size is what chance produces routinely at this sample size, so this is not evidence that any vendor is better at security tasks."
+      ? `A split this size is what chance produces routinely at this sample size, so this is not evidence that any ${GROUPINGS[dim].label.toLowerCase()} is better at security tasks.`
       : ""}
-     ${crossVendor} of ${COMPARISONS.length} comparisons are cross-vendor
-     ${crossVendor === COMPARISONS.length
-        ? "— there are no same-vendor matchups at all, so nothing here can rank two models from the same maker against each other."
-        : "."}`;
+     ${crossVendor} of ${COMPARISONS.length} comparisons cross a ${GROUPINGS[dim].label.toLowerCase()} boundary and are counted here${
+       crossVendor < COMPARISONS.length
+         ? `; the remaining ${COMPARISONS.length - crossVendor} are within a single ${GROUPINGS[dim].label.toLowerCase()}, where one side wins by construction.`
+         : "."}
+     ${dim === "family"
+        ? " Family and vendor are one-to-one in this registry, so these two views agree — they would diverge if a vendor shipped a second family."
+        : ""}`;
 }
 
 function renderModelTable() {
@@ -1431,7 +1514,7 @@ function initTheme() {
     document.documentElement.setAttribute("data-theme", next);
     try { localStorage.setItem("llmsec-theme", next); } catch (e) { /* private mode */ }
     // Charts bake in resolved colours, so they have to be redrawn on a theme change.
-    renderHero(); renderCharts(); renderVendors(); renderModelTable(); renderPower();
+    renderHero(); renderCharts(); renderGroupToggle(); renderVendors(); renderModelTable(); renderPower();
     renderFilters(); renderResults(); renderMatchups();
   });
 }
@@ -1447,6 +1530,7 @@ function init() {
 
   renderHero();
   renderKpis();
+  renderGroupToggle();
   renderVendors();
   renderModelTable();
   renderPower();
