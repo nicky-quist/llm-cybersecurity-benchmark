@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>LLM Cybersecurity Benchmark — SOC Task Evaluation</title>
 <meta name="description" content="Pairwise evaluation of frontier LLMs on SOC and security-engineering prompts, reported with the uncertainty a small sample actually carries." />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
   /* ---------------------------------------------------------------
      Vendor brand palette. Each vendor gets its own hue so a model's
@@ -88,6 +91,14 @@
 
   * { box-sizing: border-box; }
   html { scroll-behavior: smooth; scroll-padding-top: 78px; }
+
+  /* Themed scrollbars — the wide tables scroll inside their own containers, so
+     the default light-grey bar is conspicuous against the dark panels. */
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: var(--bg-2); }
+  ::-webkit-scrollbar-thumb { background: var(--line); border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+  * { scrollbar-width: thin; scrollbar-color: var(--line) var(--bg-2); }
 
   body {
     margin: 0;
@@ -386,7 +397,7 @@
 
   .prose code {
     background: var(--raised); border-radius: 6px; padding: 1px 6px; font-size: 0.85em;
-    font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+    font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
   }
 
   .prose { line-height: 1.75; font-size: 0.9rem; color: var(--muted); }
