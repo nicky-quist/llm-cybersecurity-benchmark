@@ -144,7 +144,7 @@ def plot_winner_by_prompt(rows, path):
     ax.set_xlabel("prompt id", fontsize=10)
     ax.spines[["top", "right", "left"]].set_visible(False)
     ax.set_title("Winner by prompt (green = Google, blue = OpenAI)\n"
-                 "One judgement per prompt, single unblinded rater — no repeats to measure variance",
+                 "One judgement per prompt, single rater (blind) — no repeats to measure variance",
                  fontsize=12, pad=14)
     fig.tight_layout()
     fig.savefig(path, dpi=150)

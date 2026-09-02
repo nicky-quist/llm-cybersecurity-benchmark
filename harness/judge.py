@@ -1,16 +1,17 @@
 """
 Blind pairwise judging.
 
-The second-largest limitation of the original dataset, after the missing raw
-responses, is that a single judge scored every comparison while knowing which
-model produced which answer. Model identity is a well-documented route for bias
-and nothing in that design controlled for it.
+The original round was judged blind — Handshake AI Versus withheld the model
+names until the verdict was in — but it kept no record of which response was
+shown first and no rubric, so its verdicts can be neither position-bias-checked
+nor decomposed.
 
-This does. For each pairing it renders the two archived responses side by side
-as "Response A" and "Response B", with the model names withheld, in an order
-decided by a seed rather than by the schedule. The mapping is written to
-data/judgements.csv only after the verdict is recorded, so it cannot leak into
-the judgement, and the seed makes the whole run reproducible.
+This harness keeps the blinding and adds both. For each pairing it renders the
+two archived responses side by side as "Response A" and "Response B", with the
+model names withheld, in an order decided by a seed rather than by the schedule.
+The mapping is written to data/judgements.csv only after the verdict is recorded,
+so it cannot leak into the judgement, and the seed makes the whole run
+reproducible.
 
     python harness/judge.py --render            # write the blind pages + index
     python harness/judge.py --import FILE       # ingest verdicts from those pages
@@ -201,8 +202,9 @@ def main():
                              "test, so a wrong value corrupts a statistic")
     parser.add_argument("--round", default="2",
                         help="round label written to prompt_results.csv (default 2). "
-                             "Round 1 is the original unblinded Handshake Versus data; "
-                             "keeping them separable is the point of the column.")
+                             "Round 1 is the original Handshake Versus data (blind, but "
+                             "no archived responses or rubric); keeping them separable is "
+                             "the point of the column.")
     args = parser.parse_args()
 
     if hasattr(sys.stdout, "reconfigure"):

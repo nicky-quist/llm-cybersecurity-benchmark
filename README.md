@@ -30,6 +30,8 @@ Rather than claiming broad model superiority, this project explores whether **di
 - Platform: Handshake AI Versus (round one — **no longer reachable**; see
   [the collection harness](harness/) for what replaces it)
 - Evaluation design: pairwise model comparisons
+- Judging: blind to model identity in both rounds (Versus revealed the names only after
+  each verdict; the round-2 harness withholds them entirely)
 - Number of prompts: 20 (round 1); 28 comparisons total across two rounds
 - Domains tested:
   - cybersecurity knowledge
@@ -57,11 +59,13 @@ regenerated from `data/prompt_results.csv` by `analysis/statistics.py` — none 
 maintained by hand.
 
 The comparisons come from two rounds, and they are **not** methodologically equivalent.
-Round 1 (20 comparisons) was scored in Handshake AI Versus by a single judge who could see
-which model wrote which answer, with no responses archived. Round 2 (8 comparisons) was
-scored through the blind A/B interface in `harness/`, with every raw response saved to
-`responses/` first. The `round` column in `prompt_results.csv` keeps them separable; treat
-any aggregate over both as carrying round 1's limitations.
+Both were judged blind to model identity — in round 1 (20 comparisons) Handshake AI Versus
+withheld the model names until the verdict was recorded; round 2 (8 comparisons) uses the
+blind A/B interface in `harness/`. What round 1 lacks is everything around the verdict: no
+raw responses archived, no five-point rubric, no record of which response was shown first,
+and an ad-hoc pairing draw rather than a computed schedule. The `round` column in
+`prompt_results.csv` keeps them separable; treat any aggregate over both as carrying
+round 1's limitations.
 
 ![Win rate by model with 95% Wilson intervals](visualizations/wins_by_model.png)
 
@@ -224,13 +228,13 @@ reached p ≤ 0.05.** At five appearances, a model that wins every single compar
 still lands at p = 0.06. Those results were unfalsifiable before the first response
 was read, and the dashboard now says so per model.
 
-[`harness/`](harness/) fixes that, and the two other limitations round one documented:
+[`harness/`](harness/) fixes that, and the other limitations round one documented:
 
 | Round one | Round two |
 |---|---|
 | Ad-hoc pairings; 12 of 28 possible pairs occurred | `schedule.py` — 33 comparisons, **every model appearing exactly 6 times**, 82% cross-vendor |
 | Raw model outputs never archived | `collect.py` — every response written to `responses/<prompt_id>/<model>.md` before judging |
-| Single judge who knew which model wrote which answer | `judge.py` — responses shown as **A/B with identities withheld**, order set by seed, plus a five-point rubric |
+| Blind, but only a winner and a one-line note recorded | `judge.py` — still blind, with the seed-set A/B order logged and a **five-point rubric**, so position bias and rubric consistency become checkable |
 | Vendor inferred from the model's name | `data/models.csv` — an explicit registry of model, vendor, family and tier |
 | One comparison per category, so no per-category claim was testable | `schedule.py --per-category 3` — 60 comparisons, exactly 3 per category, models still balanced at 9–10 appearances |
 | No second rater, so no agreement figure existed | `analysis/agreement.py` — Cohen's kappa between judges, a position-bias test, and rubric-vs-verdict consistency |
@@ -331,14 +335,15 @@ These are the reasons the results above are hedged as heavily as they are.
 - **n = 28 is too small to rank eleven models.** Appearances range from one to eleven,
   and seven of the eleven models could not have produced a significant result under any
   outcome. The confidence intervals above are the honest width, not a formality.
-- **A single judge, unblinded in round 1.** I scored every comparison myself. In round 1 I
-  could see which model wrote which answer, which is a live route for bias that nothing
-  controlled for. Round 2 was scored through the blind A/B interface, so identity bias is
-  removed there — but there is still no second rater, and therefore no inter-rater agreement
-  to report in either round. `analysis/agreement.py` computes Cohen's kappa the moment a
-  second person scores the same pairings; until then it correctly reports that it cannot.
-  A position-bias check does run on round 2: 5 of 8 verdicts went to whichever response was
-  shown first, exact binomial p = 0.73, which at n = 8 has little power to detect anything.
+- **A single judge, no second rater.** I scored every comparison myself. Both rounds were
+  judged blind to model identity — Versus revealed the names only after each verdict, and
+  round 2's harness withholds them by seed-assigned A/B — so identity bias is controlled for
+  throughout. What is missing is a second rater, and therefore any inter-rater agreement, in
+  either round. `analysis/agreement.py` computes Cohen's kappa the moment a second person
+  scores the same pairings; until then it correctly reports that it cannot. A position-bias
+  check runs on round 2 (round 1 kept no record of presentation order): 5 of 8 verdicts went
+  to whichever response was shown first, exact binomial p = 0.73, which at n = 8 has little
+  power to detect anything.
 - **Unbalanced pairings.** Not a round robin. Strength of schedule varies: GPT-4o drew a
   Gemini opponent in all six of its comparisons, so its 0–6 is partly a statement about who
   it faced. It is the only significant result here and it still carries that caveat.

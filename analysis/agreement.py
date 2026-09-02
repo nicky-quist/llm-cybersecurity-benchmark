@@ -1,12 +1,11 @@
 """
 Judge reliability: inter-rater agreement, position bias, rubric consistency.
 
-Round one had a single judge who knew which model wrote which answer, and there
-was no second rater — so there was no agreement figure to report and no way to
-tell a real quality difference from one judge's taste. Blinding (harness/judge.py)
-removes the identity bias. It does not tell you whether the judgements are
-reproducible. Only a second rater does that, and this module is what turns their
-work into a number.
+Both rounds were judged blind to model identity, but by a single rater with no
+second judge — so there is no agreement figure to report and no way to tell a
+real quality difference from one judge's taste. Blinding removes the identity
+bias. It does not tell you whether the judgements are reproducible. Only a second
+rater does that, and this module is what turns their work into a number.
 
 Three checks, all computed from data/judgements.csv:
 

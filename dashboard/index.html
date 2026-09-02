@@ -652,7 +652,7 @@
     <div class="panel-body prose">
       <h4>How the comparisons were run</h4>
       <ul>
-        <li>Two rounds. <strong>Round 1</strong> (20 comparisons) ran in Handshake AI Versus, which presents two models side by side. <strong>Round 2</strong> (8 comparisons) ran on a blind A/B interface where the model names were withheld until the verdict was recorded.</li>
+        <li>Two rounds, both judged blind. <strong>Round 1</strong> (20 comparisons) ran in Handshake AI Versus, which withheld the model names until the verdict was recorded. <strong>Round 2</strong> (8 comparisons) ran on the project's own blind A/B harness, which additionally archives every raw response and logs the presentation order.</li>
         <li>Each prompt was shown to two models; both responses were read in full and a single winner was chosen, scored across five dimensions.</li>
         <li>Judging criteria: technical correctness, completeness, operational usefulness to a SOC, clarity, realism, and hallucination resistance where the prompt tested it.</li>
         <li>A short written rationale was recorded for every decision — all of them are in the results table above.</li>
@@ -661,7 +661,7 @@
       <h4>Why the results are hedged as heavily as they are</h4>
       <ul>
         <li><strong>The sample is too small to rank this many models.</strong> The confidence intervals above are the honest width of the design, not a formality.</li>
-        <li><strong>One judge, and no second rater.</strong> I scored every comparison myself. Round 1 was unblinded — I could see which model wrote which answer, which is a live route for bias that nothing controlled for. Round 2 was blind. Either way there is no second rater, so there is no inter-rater agreement to report, and these verdicts have not been shown to be reproducible.</li>
+        <li><strong>One judge, and no second rater.</strong> I scored every comparison myself. Both rounds were blind to model identity — Versus revealed the names only after each verdict, and round 2's harness withholds them entirely. What is missing is a second rater, so there is no inter-rater agreement to report, and these verdicts have not been shown to be reproducible.</li>
         <li><strong>Unbalanced pairings.</strong> Not a round robin — see the pairing matrix. Strength of schedule varies substantially between models.</li>
         <li><strong>Few repeats.</strong> Most prompts were judged once, so within-prompt judging variance is largely unmeasured.</li>
         <li><strong>Round 1's raw model outputs were not archived</strong>, so those judgements cannot be independently re-scored. Round 2's responses are all saved, which is the difference between a claim and a checkable one.</li>

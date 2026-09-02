@@ -5,7 +5,8 @@
 This project used pairwise human evaluation rather than an automated benchmark suite.
 
 For each prompt:
-1. Two models were compared side by side in Handshake AI Versus.
+1. Two models were compared side by side in Handshake AI Versus, with their identities
+   hidden until after the verdict was recorded.
 2. Responses were reviewed for correctness, completeness, clarity, and SOC usefulness.
 3. A single winner was selected.
 4. Notes were recorded explaining the decision.
@@ -33,7 +34,7 @@ specific claim untestable — the mapping is one-to-one.
 | Improvement | Why | Where |
 |---|---|---|
 | Balanced schedule, every model 6+ appearances | At 5 appearances a perfect record still gives p = 0.06. Six of eight models in round one were below that line, so their results were unfalsifiable before the first response was read. | `harness/schedule.py` |
-| Blind A/B presentation, order fixed by seed | A single judge scored every round-one comparison knowing which model wrote which answer. Model identity is a live route for bias and nothing controlled for it. | `harness/judge.py` |
+| Presentation order logged, fixed by seed | Round one was judged blind, but Versus kept no record of which response was shown first, so its verdicts cannot be checked for position bias. The harness logs the seed-assigned A/B order. | `harness/judge.py` |
 | Five-point rubric — correctness, completeness, usefulness, clarity, grounding | Round one recorded a winner and a sentence. A rubric makes the judgement decomposable and lets disagreement be located rather than just observed. | `harness/judge.py` |
 | Raw responses archived before judging | Round one saved none, so no judgement can be independently re-scored. This is the single biggest obstacle to anyone reproducing the work. | `harness/collect.py` → `responses/` |
 | Explicit model registry | Vendor used to be inferred from a prefix test on the model's name, which silently mislabels every model from a third vendor. | `data/models.csv` |

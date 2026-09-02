@@ -1,11 +1,13 @@
 # Collection harness
 
 The first twenty comparisons were run by hand in Handshake AI Versus. That platform
-is no longer reachable, and the original method had three limitations that a manual
-workflow could not fix anyway:
+is no longer reachable, and while its judging was blind — model names withheld until
+the verdict was in — the original method had three limitations that a manual workflow
+could not fix anyway:
 
 - raw model outputs were never archived, so no judgement can be independently re-scored
-- a single judge scored every comparison while **knowing which model wrote which answer**
+- only a winner and a one-line note were recorded — no rubric, and no record of which
+  response was shown first, so position bias can't be tested
 - pairings were drawn ad hoc, leaving six of eight models unable to produce a
   significant result no matter how they performed
 

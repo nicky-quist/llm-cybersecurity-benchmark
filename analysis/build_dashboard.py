@@ -30,10 +30,11 @@ DASHBOARD = os.path.join(ROOT, "dashboard", "index.html")
 START = "// <<<GENERATED-DATA — do not edit by hand; run: python analysis/build_dashboard.py"
 END = "// GENERATED-DATA>>>"
 
-# `round` separates the original Handshake Versus comparisons (round 1 — a single
-# unblinded judge, no archived responses) from harness-collected ones (round 2 —
-# blind A/B, responses on disk). Mixing them silently would launder round one's
-# limitations into the newer data, so the column travels with every row.
+# `round` separates the original Handshake Versus comparisons (round 1 — blind,
+# but no archived responses, no rubric, ad-hoc pairings) from harness-collected
+# ones (round 2 — blind A/B, responses on disk, computed schedule). Mixing them
+# silently would launder round one's limitations into the newer data, so the
+# column travels with every row.
 COMPARISON_FIELDS = ["prompt_id", "category", "prompt_text",
                      "model_a", "model_b", "winner", "rationale", "round"]
 
